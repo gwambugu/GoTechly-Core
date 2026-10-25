@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- pending_change already has idx_pending_change_status and idx_pending_change_entity_type -->
+    <changeSet id="20260420111000-1" author="gotechly">
+        <createIndex indexName="idx_pending_change_maker" tableName="pending_change">
+            <column name="maker_username"/>
+        </createIndex>
+        <createIndex indexName="idx_pending_change_chng_type" tableName="pending_change">
+            <column name="change_type"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

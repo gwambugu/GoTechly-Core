@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        DEV ONLY (context "dev"): seeds the cross-plugin globals listed under
+        gotechly.plugins.required-global-configs, pointing at the self-signed stores
+        written by scripts/generate-dev-certs.sh. Without these rows Core refuses to start.
+
+        Production never runs this changeset (application-prod.yml sets contexts: prod).
+        There, create the four rows through the portal (maker-checker), marking the two
+        passwords as sensitive so they are encrypted at rest.
+
+        Passwords are inserted as plaintext with is_sensitive=true: the portal masks them,
+        and the plugin read path passes non-"enc:v1:" values straight through.
+    -->
+    <changeSet id="20261025100000-1" author="gotechly" context="dev">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM app_configs WHERE config_id LIKE 'core.mtls-%'
+            </sqlCheck>
+        </preConditions>
+        <sql>
+            INSERT INTO app_configs (id, config_id, config_value, service_type, config_status, is_sensitive) VALUES
+              (nextval('global_seq'), 'core.mtls-keystore-path',       'classpath:config/tls/internal-core.p12',       'CORE', 'ACTIVE', false),
+              (nextval('global_seq'), 'core.mtls-keystore-password',   'changeit',                                     'CORE', 'ACTIVE', true),
+              (nextval('global_seq'), 'core.mtls-truststore-path',     'classpath:config/tls/internal-truststore.p12', 'CORE', 'ACTIVE', false),
+              (nextval('global_seq'), 'core.mtls-truststore-password', 'changeit',                                     'CORE', 'ACTIVE', true)
+        </sql>
+        <rollback>
+            DELETE FROM app_configs WHERE config_id IN ('core.mtls-keystore-path', 'core.mtls-keystore-password',
+                                                        'core.mtls-truststore-path', 'core.mtls-truststore-password')
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

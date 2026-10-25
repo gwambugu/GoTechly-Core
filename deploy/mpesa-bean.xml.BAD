@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<object class="com.dotechly.gotechly.plugin.mpesa.outbound.tm.bean.AppQBean" logger="Q2" name="mpesaAppQBean">
+        
+    <property name="input-space" value="tspace:default"/>
+        
+    <property name="spaceTimeout" value="60000"/>
+        
+    <property name="mpesaTransactionManagersCount" value="3"/>
+    
+</object>

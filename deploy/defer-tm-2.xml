@@ -1,0 +1,10 @@
+<txnmgr name="deferTransactionManager_2" logger="Q2" class="org.jpos.transaction.TransactionManager">
+    <property name="input-space" value="tspace:default"/>
+    <property name="queue" value="asyncFlowQueue_2" />
+    <property name="space" value="tspace:syncFlowSpace_2" />
+    <property name="sessions" value="10" />
+    <property name="max-sessions" value="20"/>
+    <property name="debug" value="true" />
+    <property name="logger" value="Q2"/>
+    <participant class="com.dotechly.gotechly.core.pipeline.stages.deferred.DeferredTranParticipant" logger="Q2"/>
+</txnmgr>

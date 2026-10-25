@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <include file="config/liquibase/changelog/20260415000000_added_shared_sequence.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260216114500_added_entity_PaymentLog.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260216140000_added_entity_EndpointConfigs.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260216143000_added_entity_AppConfigs.xml" relativeToChangelogFile="false"/>
+<!--    <include file="config/liquibase/changelog/20260218140000_modified_entity_EndpointConfigs.xml" relativeToChangelogFile="false"/>-->
+    <include file="config/liquibase/changelog/20260223150000_added_additional_fields_PaymentLog.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224090000_added_status_fields_PaymentLog.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224100000_added_entity_ErrorCodes.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224110000_added_entity_Channels.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224120000_added_entities_History_Pending_PaymentLog.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260224130000_modified_entity_Channels.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260225100000_added_entity_AuditLog.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260323100000_added_authType_to_EndpointConfigs.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260323110000_added_authType_to_Channels.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260323120000_added_entity_PendingChange.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260323130000_remove_unique_constraint_from_error_codes.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260330100000_added_columns_to_Channels.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260330110000_added_entity_AmountLimits.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260408100000_added_partner_management_entities.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260409100000_added_hash1_to_partner_entities.xml" relativeToChangelogFile="false"/>
+
+    <!-- History AuditLog table -->
+    <include file="config/liquibase/changelog/20260420100000_added_entity_HistoryAuditLog.xml" relativeToChangelogFile="false"/>
+
+    <!-- Indexes -->
+    <include file="config/liquibase/changelog/20260420110000_added_indexes_payment_log.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420110100_added_indexes_history_payment_log.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420110200_added_indexes_pending_payment_log.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420110300_added_indexes_audit_log.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420110400_added_indexes_history_audit_log.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420110500_added_indexes_channels.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420110600_added_indexes_error_codes.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420110700_added_indexes_endpoint_configs.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420110800_added_indexes_app_configs.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420110900_added_indexes_amount_limits.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420111000_added_indexes_pending_change.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420111100_added_indexes_partners.xml" relativeToChangelogFile="false"/>
+<!--    <include file="config/liquibase/changelog/20260420111200_added_indexes_partner_accounts.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420111300_added_indexes_partner_configs.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260420111400_added_indexes_partner_services.xml" relativeToChangelogFile="false"/>-->
+    <include file="config/liquibase/changelog/20260420111500_added_indexes_partner_transaction_limits.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260505100000_unique_constraint_app_configs_config_id.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260507120000_added_columns_to_AmountLimits.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260507130000_added_indexes_amount_limits_service_currency.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260513100000_added_entity_Shedlock.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260513100000_added_index_updatedAt_paymentlog.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260514100000_added_indexes_receiver_msisdn_request_ts.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260517100000_added_entity_DarajaInquiries.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260602100000_added_entity_TemplateLookup.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260602110000_added_entity_BankCodesLookup.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260602120000_added_columns_to_BankCodesLookup.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260603100000_added_columns_to_TemplateLookup.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260707100000_added_entity_LinkedWalletSubscription.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260708100000_added_column_is_sensitive_app_configs.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260817100000_added_columns_to_LinkedWalletSubscription.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260829100000_added_entity_DeferredRecovery.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260831100000_added_entity_HistoryDeferredRecovery.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20260907100000_added_entity_CbsNodeLease.xml" relativeToChangelogFile="false"/>
+    <include file="config/liquibase/changelog/20261025100000_seed_dev_core_global_configs.xml" relativeToChangelogFile="false"/>
+
+</databaseChangeLog>

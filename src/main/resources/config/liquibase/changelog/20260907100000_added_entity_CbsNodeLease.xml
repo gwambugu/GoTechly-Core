@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        cbs_node_lease: which Core instance owns which decimal block of the DE11 (STAN) space.
+
+        Six digits is 1,000,000 values; one digit is the node ordinal and the other five are a
+        per-instance counter, so each instance emits STANs from a block no other instance can reach
+        (see StanGenerator). This table is only how an instance learns *which* block is its own.
+
+        Why a lease and not a config property: a duplicated node id silently reintroduces the very
+        collision the split exists to remove, and nothing would detect it. Config is copied between
+        instances all the time; a claimed row cannot be.
+
+        Ownership is keyed on InstanceInfo.getInstanceId() (hostname:server.port), so no new
+        configuration is introduced and a restart of the same instance reclaims the same ordinal.
+
+        Off the hot path entirely: claimed once at startup, refreshed by a heartbeat, read never.
+    -->
+    <changeSet id="20260907100000-1" author="gotechly">
+        <createTable tableName="cbs_node_lease">
+            <!-- 0..9. The ordinal IS the key: ten fixed rows, so claiming is only ever a conditional
+                 UPDATE and two instances can never race an INSERT for the same block. -->
+            <column name="node_id" type="int">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <!-- hostname:port. Null means the block is free. Deliberately NOT unique: a stale
+                 takeover can move an instance to a different ordinal, and the claim clears its old
+                 row in the same transaction rather than tripping a constraint. -->
+            <column name="owner" type="varchar(200)"/>
+            <!-- When this owner took the block. Distinct from heartbeat_at, which only says the
+                 owner was alive recently. -->
+            <column name="leased_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <!-- Refreshed by the owner. An ordinal whose heartbeat has gone stale is reclaimable;
+                 without it a permanently dead instance would leak its block forever. -->
+            <column name="heartbeat_at" type="TIMESTAMP WITH TIME ZONE"/>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="cbs_node_lease"/>
+        </rollback>
+    </changeSet>
+
+    <!--
+        Seed the ten blocks free. Pre-seeding is what lets claim() be a pure conditional UPDATE:
+        Oracle re-evaluates the predicate after taking the row lock, so of two instances racing the
+        same ordinal exactly one updates a row and the other matches none.
+    -->
+    <changeSet id="20260907100000-2" author="gotechly">
+        <insert tableName="cbs_node_lease">
+            <column name="node_id" valueNumeric="0"/>
+        </insert>
+        <insert tableName="cbs_node_lease">
+            <column name="node_id" valueNumeric="1"/>
+        </insert>
+        <insert tableName="cbs_node_lease">
+            <column name="node_id" valueNumeric="2"/>
+        </insert>
+        <insert tableName="cbs_node_lease">
+            <column name="node_id" valueNumeric="3"/>
+        </insert>
+        <insert tableName="cbs_node_lease">
+            <column name="node_id" valueNumeric="4"/>
+        </insert>
+        <insert tableName="cbs_node_lease">
+            <column name="node_id" valueNumeric="5"/>
+        </insert>
+        <insert tableName="cbs_node_lease">
+            <column name="node_id" valueNumeric="6"/>
+        </insert>
+        <insert tableName="cbs_node_lease">
+            <column name="node_id" valueNumeric="7"/>
+        </insert>
+        <insert tableName="cbs_node_lease">
+            <column name="node_id" valueNumeric="8"/>
+        </insert>
+        <insert tableName="cbs_node_lease">
+            <column name="node_id" valueNumeric="9"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="cbs_node_lease"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

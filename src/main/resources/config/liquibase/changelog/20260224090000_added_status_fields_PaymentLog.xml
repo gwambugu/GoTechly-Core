@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260224090000-1" author="gotechly">
+        <addColumn tableName="payment_log">
+            <column name="status_timestamp" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="status_count" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="status_response_code" type="varchar(100)">
+                <constraints nullable="true" />
+            </column>
+            <column name="status_response_description" type="varchar(300)">
+                <constraints nullable="true" />
+            </column>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

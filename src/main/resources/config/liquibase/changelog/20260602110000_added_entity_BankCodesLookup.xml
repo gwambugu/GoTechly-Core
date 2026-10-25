@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260602110000-1" author="gotechly">
+        <createTable tableName="bank_codes_lookup">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="country_code" type="varchar(5)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="bank_code" type="varchar(5)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="bank_branch_code" type="varchar(5)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="bic" type="varchar(50)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="pic" type="varchar(20)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="bin" type="varchar(20)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="additional_fields" type="clob">
+                <constraints nullable="true"/>
+            </column>
+            <column name="status" type="varchar(20)">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <createIndex indexName="idx_bnk_cd_lookup_bic" tableName="bank_codes_lookup">
+            <column name="bic"/>
+        </createIndex>
+        <createIndex indexName="idx_bnk_cd_lookup_ctry_code" tableName="bank_codes_lookup">
+            <column name="country_code"/>
+        </createIndex>
+        <createIndex indexName="idx_bnk_codes_lkp_bnk_code" tableName="bank_codes_lookup">
+            <column name="bank_code"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

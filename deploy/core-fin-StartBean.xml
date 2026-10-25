@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<object class="com.dotechly.gotechly.core.pipeline.stages.cbs.finacle.cbc.tm.bean.AppQBean" logger="Q2" name="appQBean">
+    <property name="input-space" value="tspace:default"/>
+    <property name="spaceTimeout" value="60000" />
+    <property name="keFinTransactionManagerCount" value="2" />
+    <property name="ugFinTransactionManagerCount" value="2" />
+    <property name="rwFinTransactionManagerCount" value="2" />
+    <property name="tzFinTransactionManagerCount" value="2" />
+    <property name="cdFinTransactionManagerCount" value="2" />
+    <property name="ssFinTransactionManagerCount" value="2" />
+    <property name="asyncFlowTransactionManagerCount" value="2" />
+    <property name="kemuxCount" value="2" />
+    <property name="ugmuxCount" value="2" />
+    <property name="rwmuxCount" value="2" />
+    <property name="tzmuxCount" value="2" />
+    <property name="cdmuxCount" value="2" />
+    <property name="ssmuxCount" value="2" />
+</object>

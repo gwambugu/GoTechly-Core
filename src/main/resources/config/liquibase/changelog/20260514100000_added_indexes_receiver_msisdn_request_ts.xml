@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Composite index supporting CachedReceiverNamesLookup: the receiver-name cache query filters
+        receiver_msisdn (equality) + request_timestamp (range, last 6 months) and orders by
+        request_timestamp DESC. A single composite (receiver_msisdn, request_timestamp) index covers
+        all three; two separate single-column indexes would not. Applied to all three payment-log
+        tables because the lookup UNIONs active, pending and history.
+    -->
+
+    <changeSet id="20260514100000-1" author="gotechly">
+        <createIndex indexName="idx_pymt_log_rcvr_msisdn" tableName="payment_log">
+            <column name="receiver_msisdn"/>
+            <column name="request_timestamp"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="20260514100000-2" author="gotechly">
+        <createIndex indexName="idx_hist_pymt_log_rcvr_msisdn" tableName="history_payment_log">
+            <column name="receiver_msisdn"/>
+            <column name="request_timestamp"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="20260514100000-3" author="gotechly">
+        <createIndex indexName="idx_pend_pymt_log_rcvr_msisdn" tableName="pending_payment_log">
+            <column name="receiver_msisdn"/>
+            <column name="request_timestamp"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

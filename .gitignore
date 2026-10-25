@@ -1,0 +1,60 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+/src/main/resources/config/tls/keystore.jks
+/src/main/resources/config/tls/truststore.jks
+
+# runtime plugin drop-folder — signed JARs deploy separately, never commit
+plugins/
+/src/main/resources/config/tls/rndps-gotechly_sign.csr
+/src/main/resources/config/tls/gotechly-sign.p12
+
+.DS_Store
+/src/main/resources/config/application-local.yml
+/src/main/resources/config/tls/internal-truststore.zip
+
+### Key material (generate with scripts/generate-dev-certs.sh; never commit) ###
+*.p12
+*.jks
+*.pfx
+*.pem
+*.key
+*.cer
+*.crt
+*.csr
+!src/test/resources/**/*.p12
+
+### OS / editor junk ###
+.DS_Store
+._*

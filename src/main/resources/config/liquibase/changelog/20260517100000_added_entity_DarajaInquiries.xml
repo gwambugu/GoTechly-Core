@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        daraja_inquiries: durable record of every Daraja inquiry (balance, status, identity,
+        agent validate, sfcverify). One row per submission; updated when the async result
+        webhook arrives, and again when the outbound caller-callback is delivered.
+
+        Correlation: requestId is the caller's id (echoed into Daraja's OriginatorConversationID
+        so the result webhook can be matched back to a row without an in-memory registry).
+    -->
+    <changeSet id="20260517100000-1" author="gotechly">
+        <createTable tableName="daraja_inquiries">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="request_id" type="varchar(64)">
+                <constraints nullable="false" unique="true"
+                             uniqueConstraintName="uk_daraja_inq_req_id"/>
+            </column>
+            <column name="inquiry_type" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source_system" type="varchar(200)"/>
+            <column name="party_a" type="varchar(64)"/>
+            <column name="identifier_type" type="varchar(8)"/>
+            <column name="conversation_id" type="varchar(64)"/>
+            <column name="originator_conversation_id" type="varchar(64)"/>
+            <column name="ack_response_code" type="varchar(16)"/>
+            <column name="ack_response_description" type="varchar(255)"/>
+            <column name="result_code" type="varchar(16)"/>
+            <column name="result_description" type="varchar(500)"/>
+            <column name="status" type="varchar(24)">
+                <!-- SUBMITTED | ACKED | COMPLETED | FAILED | TIMEOUT -->
+                <constraints nullable="false"/>
+            </column>
+            <column name="callback_url" type="varchar(500)"/>
+            <column name="callback_status" type="varchar(24)"/>
+            <!-- PENDING | DELIVERED | FAILED | NOT_APPLICABLE -->
+            <column name="callback_attempts" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="request_json" type="CLOB"/>
+            <column name="response_json" type="CLOB"/>
+            <column name="result_json" type="CLOB"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="daraja_inquiries" indexName="idx_drj_inq_orig_conv_id">
+            <column name="originator_conversation_id"/>
+        </createIndex>
+        <createIndex tableName="daraja_inquiries" indexName="idx_drj_inq_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="daraja_inquiries" indexName="idx_drj_inq_created_at">
+            <column name="created_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="daraja_inquiries"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

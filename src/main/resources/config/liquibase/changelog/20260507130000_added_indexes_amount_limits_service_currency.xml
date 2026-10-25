@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Single-column lookup indexes for amount_limits.
+        channel_name already has idx_amount_limits_channel_name from 20260420110900
+        and is also the leftmost column of idx_amount_limits_lookup, so it's not re-indexed here.
+    -->
+    <changeSet id="20260507130000-1" author="gotechly">
+        <createIndex indexName="idx_amt_limits_srvc_name" tableName="amount_limits">
+            <column name="service_name"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="20260507130000-2" author="gotechly">
+        <createIndex indexName="idx_amt_limits_currency_code" tableName="amount_limits">
+            <column name="currency_code"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

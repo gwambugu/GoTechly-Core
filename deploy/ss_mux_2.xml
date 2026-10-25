@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<mux class="org.jpos.q2.iso.QMUX" logger="Q2" name="ss-mux_2">
+ <in>ss_fin-receive_2</in>
+ <out>ss_fin-send_2</out>
+ <unhandled>sudan-unhandled</unhandled>
+<key>12,37</key>
+
+</mux>

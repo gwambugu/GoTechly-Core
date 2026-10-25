@@ -1,0 +1,42 @@
+server:
+  port: 3131
+logging:
+  level:
+    com.dotechly.gotechly: DEBUG
+    org.pf4j: DEBUG
+spring:
+  liquibase:
+    contexts: dev
+  jackson:
+    serialization:
+      indent-output: true
+  mail:
+    host: ${GOTECHLY_MAIL_HOST:localhost}
+    port: ${GOTECHLY_MAIL_PORT:1025}
+    username: ${GOTECHLY_MAIL_USERNAME:}
+    password: ${GOTECHLY_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    url: ${GOTECHLY_DB_URL:jdbc:postgresql://localhost:5432/gotechlycoredb}
+    username: ${GOTECHLY_DB_USERNAME:gotechly_core}
+    password: ${GOTECHLY_DB_PASSWORD:gotechly_core}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      poolName: Hikari
+      auto-commit: false
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 30000
+
+management:
+  health:
+    mail:
+      enabled: false

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260420111400-1" author="gotechly">
+        <createIndex indexName="idx_partner_svc_ptn_typ_dir" tableName="partner_services">
+            <column name="partner_id"/>
+            <column name="payment_type"/>
+            <column name="direction"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

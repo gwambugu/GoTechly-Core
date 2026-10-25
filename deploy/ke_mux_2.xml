@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<mux class="org.jpos.q2.iso.QMUX" logger="Q2" name="ke-mux_2">
+ <in>ke_fin-receive_2</in>
+ <out>ke_fin-send_2</out>
+ <unhandled>kenya-unhandled</unhandled>
+<key>12,37</key>
+
+</mux>

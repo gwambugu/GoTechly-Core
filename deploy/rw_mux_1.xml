@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<mux class="org.jpos.q2.iso.QMUX" logger="Q2" name="rw-mux_1">
+ <in>rw_fin-receive_1</in>
+ <out>rw_fin-send_1</out>
+ <unhandled>rwanda-unhandled</unhandled>
+<key>12,37</key>
+
+</mux>

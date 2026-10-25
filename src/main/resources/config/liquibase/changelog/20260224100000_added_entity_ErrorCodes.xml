@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260224100000-1" author="gotechly">
+        <createTable tableName="error_codes">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="api_name" type="varchar(200)">
+                <constraints nullable="false" unique="false" />
+            </column>
+            <column name="service_name" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="service_type" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="request_type" type="varchar(100)">
+                <constraints nullable="true" />
+            </column>
+            <column name="error_code" type="varchar(50)">
+                <constraints nullable="true" />
+            </column>
+            <column name="error_description" type="varchar(300)">
+                <constraints nullable="true" />
+            </column>
+            <column name="transaction_state" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

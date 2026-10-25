@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<mux class="org.jpos.q2.iso.QMUX" logger="Q2" name="cd-mux_1">
+ <in>cd_fin-receive_1</in>
+ <out>cd_fin-send_1</out>
+ <unhandled>drc-unhandled</unhandled>
+<key>12,37</key>
+
+</mux>

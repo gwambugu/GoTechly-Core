@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260420110400-1" author="gotechly">
+        <createIndex indexName="idx_hist_audit_log_request_id" tableName="history_audit_log">
+            <column name="request_id"/>
+        </createIndex>
+        <createIndex indexName="idx_hist_audit_log_event_type" tableName="history_audit_log">
+            <column name="event_type"/>
+        </createIndex>
+        <createIndex indexName="idx_hist_audit_log_enty_name" tableName="history_audit_log">
+            <column name="entity_name"/>
+        </createIndex>
+        <createIndex indexName="idx_hist_audit_log_session_id" tableName="history_audit_log">
+            <column name="session_id"/>
+        </createIndex>
+        <createIndex indexName="idx_hist_audit_log_created_at" tableName="history_audit_log">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

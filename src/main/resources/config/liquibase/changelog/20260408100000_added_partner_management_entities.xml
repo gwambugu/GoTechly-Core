@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- ============================================================ -->
+    <!-- partners                                                      -->
+    <!-- ============================================================ -->
+    <changeSet id="20260408100000-1" author="gotechly">
+        <createTable tableName="partners">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="partner_code" type="varchar(50)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="ux_partners_partner_code" />
+            </column>
+            <column name="client_short_name" type="varchar(100)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="ux_partners_client_short_name" />
+            </column>
+            <column name="legal_name" type="varchar(300)">
+                <constraints nullable="false" />
+            </column>
+            <column name="agent_id" type="varchar(100)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="ux_partners_agent_id" />
+            </column>
+            <column name="partner_type" type="varchar(50)">
+                <constraints nullable="false" />
+            </column>
+            <column name="country_code" type="varchar(3)">
+                <constraints nullable="true" />
+            </column>
+            <column name="contact_email" type="varchar(200)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="ux_partners_contact_email" />
+            </column>
+            <column name="contact_phone" type="varchar(20)">
+                <constraints nullable="true" unique="true" uniqueConstraintName="ux_partners_contact_phone" />
+            </column>
+            <column name="client_certificate" type="clob">
+                <constraints nullable="true" />
+            </column>
+            <column name="salt" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="callback_url" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="ip_whitelist" type="varchar(1000)">
+                <constraints nullable="true" />
+            </column>
+            <column name="settlement_cycle" type="varchar(20)">
+                <constraints nullable="true" />
+            </column>
+            <column name="contract_start_date" type="date">
+                <constraints nullable="true" />
+            </column>
+            <column name="contract_end_date" type="date">
+                <constraints nullable="true" />
+            </column>
+            <column name="kyc_status" type="varchar(20)">
+                <constraints nullable="true" />
+            </column>
+            <column name="kyc_expiry_date" type="date">
+                <constraints nullable="true" />
+            </column>
+            <column name="status" type="varchar(30)">
+                <constraints nullable="false" />
+            </column>
+            <column name="maker_id" type="varchar(200)">
+                <constraints nullable="false" />
+            </column>
+            <column name="maker_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false" />
+            </column>
+            <column name="checker_id" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_remarks" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="date_created" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="created_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="date_modified" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="modified_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- ============================================================ -->
+    <!-- partner_accounts                                              -->
+    <!-- ============================================================ -->
+    <changeSet id="20260408100000-2" author="gotechly">
+        <createTable tableName="partner_accounts">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="partner_id" type="bigint">
+                <constraints nullable="false" />
+            </column>
+            <column name="account_number" type="varchar(50)">
+                <constraints nullable="false" />
+            </column>
+            <column name="account_name" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="account_type" type="varchar(30)">
+                <constraints nullable="false" />
+            </column>
+            <column name="bank_code" type="varchar(20)">
+                <constraints nullable="true" />
+            </column>
+            <column name="bank_name" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="branch_code" type="varchar(20)">
+                <constraints nullable="true" />
+            </column>
+            <column name="swift_code" type="varchar(11)">
+                <constraints nullable="true" />
+            </column>
+            <column name="country_code" type="varchar(3)">
+                <constraints nullable="true" />
+            </column>
+            <column name="currency_code" type="varchar(3)">
+                <constraints nullable="false" />
+            </column>
+            <column name="is_primary" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false" />
+            </column>
+            <column name="status" type="varchar(30)">
+                <constraints nullable="false" />
+            </column>
+            <column name="maker_id" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="maker_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_id" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_remarks" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="date_created" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="created_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="date_modified" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="modified_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="partner_accounts"
+                                 baseColumnNames="partner_id"
+                                 constraintName="fk_partner_accounts_partner_id"
+                                 referencedTableName="partners"
+                                 referencedColumnNames="id" />
+
+        <addUniqueConstraint tableName="partner_accounts"
+                             columnNames="partner_id, account_number"
+                             constraintName="ux_partner_acc_partner_account" />
+    </changeSet>
+
+    <!-- ============================================================ -->
+    <!-- partner_services                                              -->
+    <!-- ============================================================ -->
+    <changeSet id="20260408100000-3" author="gotechly">
+        <createTable tableName="partner_services">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="partner_id" type="bigint">
+                <constraints nullable="false" />
+            </column>
+            <column name="payment_type" type="varchar(100)">
+                <constraints nullable="false" />
+            </column>
+            <column name="direction" type="varchar(20)">
+                <constraints nullable="false" />
+            </column>
+            <column name="status" type="varchar(30)">
+                <constraints nullable="false" />
+            </column>
+            <column name="effective_date" type="date">
+                <constraints nullable="true" />
+            </column>
+            <column name="expiry_date" type="date">
+                <constraints nullable="true" />
+            </column>
+            <column name="maker_id" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="maker_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_id" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_remarks" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="date_created" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="created_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="date_modified" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="modified_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="partner_services"
+                                 baseColumnNames="partner_id"
+                                 constraintName="fk_partner_services_partner_id"
+                                 referencedTableName="partners"
+                                 referencedColumnNames="id" />
+
+        <addUniqueConstraint tableName="partner_services"
+                             columnNames="partner_id, payment_type, direction"
+                             constraintName="ux_partner_srv_type_direction" />
+    </changeSet>
+
+    <!-- ============================================================ -->
+    <!-- partner_transaction_limits                                    -->
+    <!-- ============================================================ -->
+    <changeSet id="20260408100000-4" author="gotechly">
+        <createTable tableName="partner_transaction_limits">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="partner_id" type="bigint">
+                <constraints nullable="false" />
+            </column>
+            <column name="payment_type" type="varchar(100)">
+                <constraints nullable="false" />
+            </column>
+            <column name="direction" type="varchar(20)">
+                <constraints nullable="true" />
+            </column>
+            <column name="currency_code" type="varchar(3)">
+                <constraints nullable="false" />
+            </column>
+            <column name="min_amount" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="max_amount" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="daily_amount_limit" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="daily_count_limit" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="monthly_amount_limit" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="monthly_count_limit" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="fee_amount" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="fee_percentage" type="decimal(8,4)">
+                <constraints nullable="true" />
+            </column>
+            <column name="status" type="varchar(30)">
+                <constraints nullable="false" />
+            </column>
+            <column name="effective_date" type="date">
+                <constraints nullable="true" />
+            </column>
+            <column name="expiry_date" type="date">
+                <constraints nullable="true" />
+            </column>
+            <column name="maker_id" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="maker_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_id" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_remarks" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="date_created" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="created_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="date_modified" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="modified_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="partner_transaction_limits"
+                                 baseColumnNames="partner_id"
+                                 constraintName="fk_partner_txn_lmt_partner_id"
+                                 referencedTableName="partners"
+                                 referencedColumnNames="id" />
+    </changeSet>
+
+    <!-- ============================================================ -->
+    <!-- partner_configs                                                -->
+    <!-- ============================================================ -->
+    <changeSet id="20260408100000-5" author="gotechly">
+        <createTable tableName="partner_configs">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="partner_id" type="bigint">
+                <constraints nullable="false" />
+            </column>
+            <column name="param_name" type="varchar(200)">
+                <constraints nullable="false" />
+            </column>
+            <column name="param_value" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="param_description" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="status" type="varchar(30)">
+                <constraints nullable="false" />
+            </column>
+            <column name="maker_id" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="maker_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_id" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="checker_remarks" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="date_created" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="created_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="date_modified" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="modified_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+
+        <addForeignKeyConstraint baseTableName="partner_configs"
+                                 baseColumnNames="partner_id"
+                                 constraintName="fk_partner_configs_partner_id"
+                                 referencedTableName="partners"
+                                 referencedColumnNames="id" />
+
+        <addUniqueConstraint tableName="partner_configs"
+                             columnNames="partner_id, param_name"
+                             constraintName="ux_partner_cfg_partner_param" />
+    </changeSet>
+
+</databaseChangeLog>

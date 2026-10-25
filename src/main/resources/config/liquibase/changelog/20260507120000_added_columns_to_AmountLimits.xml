@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Adds service / country / currency columns so an AmountLimit can be tied to
+        (channel, service, country, currency) rather than channel alone.
+        country_code: ISO 3166-1 alpha-2/alpha-3 (10 chars headroom for non-standard codes).
+        currency_code: ISO 4217 alpha-3 (10 chars headroom).
+    -->
+    <changeSet id="20260507120000-1" author="gotechly">
+        <addColumn tableName="amount_limits">
+            <column name="service_name" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="country_code" type="varchar(10)">
+                <constraints nullable="true" />
+            </column>
+            <column name="currency_code" type="varchar(10)">
+                <constraints nullable="true" />
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!--
+        Composite lookup index for the validation hot-path:
+        WHERE channel_name = ? AND service_name = ? AND country_code = ? AND currency_code = ?
+        Order matches expected query selectivity (channel narrows fastest).
+    -->
+    <changeSet id="20260507120000-2" author="gotechly">
+        <createIndex indexName="idx_amount_limits_lkup" tableName="amount_limits">
+            <column name="channel_name"/>
+            <column name="service_name"/>
+            <column name="country_code"/>
+            <column name="currency_code"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

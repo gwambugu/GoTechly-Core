@@ -1,0 +1,15 @@
+server:
+  ssl:
+    key-store: classpath:config/tls/internal-core.p12
+    key-store-password: ${GOTECHLY_INTERNAL_KEYSTORE_PASSWORD:changeit}
+    key-store-type: PKCS12
+    key-alias: gotechly.core.internal
+    # mTLS — require client certificates from Gateway and plugins
+    client-auth: need
+    trust-store: ${GOTECHLY_INTERNAL_TRUSTSTORE:classpath:config/tls/internal-truststore.p12}
+    trust-store-password: ${GOTECHLY_INTERNAL_TRUSTSTORE_PASSWORD:changeit}
+    trust-store-type: PKCS12
+    ciphers: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+    enabled-protocols: TLSv1.2
+  http2:
+    enabled: true

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+      Account/alias (proxy) management reuses linked_wallet_subscription as the subscription
+      registry. Four columns are added:
+
+        alias_name   the alias/proxy the customer chose ("eKash-Id" in the R-NDPS spec). The reason
+                     this feature exists.
+        payment_type which scheme owns the linkage. Needed to resolve the LinkedAccount plugin and
+                     to key the status API — the pre-existing service_type / psp_name columns come
+                     from the M-KESHO (VMT) vocabulary and overloading one of them would make the
+                     plugin-resolution key an undocumented convention.
+        request_id   the channel's correlation id. The status API reads by it and the scheme's
+                     asynchronous acmt callbacks correlate on it, mirroring daraja_inquiries.
+        date_linked  when the linkage came into force. create_date already means "row created",
+                     which is a different event once a registration sits PENDING awaiting the
+                     scheme's callback.
+
+      link_status is widened 10 -> 20 so the canonical vocabulary fits: DEREGISTERED is 12
+      characters and would have been silently truncated by Oracle.
+    -->
+    <changeSet id="20260817100000-1" author="gotechly-core">
+        <addColumn tableName="linked_wallet_subscription">
+            <column name="alias_name" type="varchar(35)"><constraints nullable="true"/></column>
+            <column name="payment_type" type="varchar(50)"><constraints nullable="true"/></column>
+            <column name="request_id" type="varchar(70)"><constraints nullable="true"/></column>
+            <column name="date_linked" type="timestamp"><constraints nullable="true"/></column>
+        </addColumn>
+
+        <modifyDataType tableName="linked_wallet_subscription" columnName="link_status"
+                        newDataType="varchar(20)"/>
+    </changeSet>
+
+    <!--
+      Separate changeSet: an index build on a populated table is the part most likely to need a
+      rerun, and keeping it apart from the addColumn means a failure here does not leave the whole
+      migration unapplied.
+
+      request_id is unique — a replayed registration must collide rather than create a second row
+      for the same linkage. alias_name is NOT unique here: the scheme owns alias uniqueness across
+      the industry and enforcing a local constraint would reject a re-registration of an alias this
+      bank legitimately released and re-acquired.
+    -->
+    <changeSet id="20260817100000-2" author="gotechly-core">
+        <createIndex indexName="idx_lw_sub_alias" tableName="linked_wallet_subscription">
+            <column name="alias_name"/>
+        </createIndex>
+        <createIndex indexName="idx_lw_sub_payment_type" tableName="linked_wallet_subscription">
+            <column name="payment_type"/>
+        </createIndex>
+        <createIndex indexName="uk_lw_sub_request_id" tableName="linked_wallet_subscription"
+                     unique="true">
+            <column name="request_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

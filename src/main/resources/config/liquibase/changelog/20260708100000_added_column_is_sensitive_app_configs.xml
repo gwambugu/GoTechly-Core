@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        app_configs.is_sensitive — marks a config whose value holds a secret
+        (partner password, keystore password, API secret...). When true, Core:
+          * stores config_value encrypted at rest (AES-256-GCM, "enc:v1:" sentinel)
+          * decrypts transparently on the plugin/SPI read path (plugins get plaintext)
+          * masks the value ("********") on every portal/REST response and in the
+            maker-checker diff — plaintext is never returned to the Gateway.
+        Liquibase boolean renders as BOOLEAN on Postgres and NUMBER(1) on Oracle.
+    -->
+    <changeSet id="20260708100000-1" author="gotechly">
+        <addColumn tableName="app_configs">
+            <column name="is_sensitive" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+
+        <rollback>
+            <dropColumn tableName="app_configs" columnName="is_sensitive"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

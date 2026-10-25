@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260420110000-1" author="gotechly">
+        <createIndex indexName="idx_payment_log_request_id" tableName="payment_log">
+            <column name="request_id"/>
+        </createIndex>
+        <createIndex indexName="idx_payment_log_status" tableName="payment_log">
+            <column name="status"/>
+        </createIndex>
+        <createIndex indexName="idx_payment_log_payment_type" tableName="payment_log">
+            <column name="payment_type"/>
+        </createIndex>
+        <createIndex indexName="idx_payment_log_source_system" tableName="payment_log">
+            <column name="source_system"/>
+        </createIndex>
+        <createIndex indexName="idx_payment_log_created_at" tableName="payment_log">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

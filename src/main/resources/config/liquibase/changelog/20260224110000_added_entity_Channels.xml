@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260224110000-1" author="gotechly">
+        <createTable tableName="channels">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="channel_name" type="varchar(200)">
+                <constraints nullable="false" unique="true" />
+            </column>
+            <column name="system_name" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="api_name" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="callback_request_template" type="clob">
+                <constraints nullable="true" />
+            </column>
+            <column name="auth_certificate" type="clob">
+                <constraints nullable="true" />
+            </column>
+            <column name="content_type" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="expected_response" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="additional_fields" type="clob">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

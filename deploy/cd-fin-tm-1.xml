@@ -1,0 +1,27 @@
+<txnmgr name="cdFinTransactionManager_1" logger="Q2" class="org.jpos.transaction.TransactionManager">
+    <property name="input-space" value="tspace:default"/>
+    <property name="queue" value="cdFinQueue_1" />
+    <property name="space" value="tspace:cdFinpace_1" />
+    <property name="sessions" value="200" />
+    <property name="max-sessions" value="300"/>
+    <property name="debug" value="true" />
+    <property name="logger" value="Q2"/>
+  <participant class="com.dotechly.gotechly.core.pipeline.stages.cbs.finacle.cbc.participants.selector.GroupSelectorParticipant" name="Selector" logger="Q2"> </participant>
+
+  <group name="CBC_TRANSACTION_STATUS">
+      <participant class="com.dotechly.gotechly.core.pipeline.stages.cbs.finacle.cbc.participants.status.TxnStatusCheckParticipant" logger="Q2"></participant>
+  </group>
+
+  <group name="CBC_ACCOUNT_VALIDATION">
+      <participant class="com.dotechly.gotechly.core.pipeline.stages.cbs.finacle.cbc.participants.validate.AccountValidationParticipant" logger="Q2"></participant>
+  </group>
+
+  <group name="CBC_TRANSACTION_PAYMENT">
+      <participant class="com.dotechly.gotechly.core.pipeline.stages.cbs.finacle.cbc.participants.payment.TransactionPaymentParticipant" logger="Q2"></participant>
+  </group>
+
+    <group name="CBC_TRANSACTION_REVERSAL">
+        <participant class="com.dotechly.gotechly.core.pipeline.stages.cbs.finacle.cbc.participants.reversal.TransactionReversalParticipant" logger="Q2"></participant>
+    </group>
+
+</txnmgr>

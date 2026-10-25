@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Make app_configs.config_id unique.
+
+        Pre-flight: refuse to run if duplicate config_id values exist in the
+        target DB — running blind would produce a cryptic native unique-violation
+        from the DBMS instead of a clear Liquibase HALT. Operator must clean up
+        duplicates manually before this migration applies.
+    -->
+    <changeSet id="20260505100000-1" author="gotechly">
+        <preConditions onFail="HALT" onFailMessage="app_configs has duplicate config_id values — clean them up before applying this migration.">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) - COUNT(DISTINCT config_id)
+                FROM app_configs
+                WHERE config_id IS NOT NULL
+            </sqlCheck>
+        </preConditions>
+
+        <!-- Drop the redundant non-unique index added in 20260420110800-1. -->
+        <dropIndex tableName="app_configs" indexName="idx_app_configs_config_id"/>
+
+        <addUniqueConstraint
+            tableName="app_configs"
+            columnNames="config_id"
+            constraintName="uk_app_configs_config_id"/>
+
+        <rollback>
+            <dropUniqueConstraint
+                tableName="app_configs"
+                constraintName="uk_app_configs_config_id"/>
+            <createIndex indexName="idx_app_configs_config_id" tableName="app_configs">
+                <column name="config_id"/>
+            </createIndex>
+        </rollback>
+    </changeSet>
+
+    <!--
+        Forbid NULL config_id. Every row's purpose is to map a config_id key to
+        a value, so NULL there is meaningless and would also let standard-SQL
+        unique constraints permit multiple NULL rows (which the constraint
+        above does NOT block).
+
+        Pre-flight: HALT if any NULL row exists. Operator must populate or
+        delete those rows before this migration applies.
+    -->
+    <changeSet id="20260505100000-2" author="gotechly">
+        <preConditions onFail="HALT" onFailMessage="app_configs has rows with NULL config_id — populate or delete them before applying this migration.">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM app_configs WHERE config_id IS NULL
+            </sqlCheck>
+        </preConditions>
+
+        <addNotNullConstraint
+            tableName="app_configs"
+            columnName="config_id"
+            columnDataType="varchar(200)"/>
+
+        <rollback>
+            <dropNotNullConstraint
+                tableName="app_configs"
+                columnName="config_id"
+                columnDataType="varchar(200)"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

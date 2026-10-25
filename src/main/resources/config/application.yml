@@ -1,0 +1,373 @@
+spring:
+  profiles:
+    active: dev,tls
+  application:
+    name: GoTechly-Core
+  lifecycle:
+    # Grace period for `server.shutdown: graceful` below. Sized above the widest CBS
+    # response timeout (gotechly.cbs.cbc.response-timeout-ms — 30s on the wider corridor) so a
+    # posting already in flight gets to finish rather than being cut mid-answer.
+    timeout-per-shutdown-phase: 45s
+  task:
+    scheduling:
+      # Default is a SINGLE thread shared by every @Scheduled method. EchoService.echo()
+      # (fixedRate 15s) makes 6 blocking MUX.request(...,5000ms) calls, so a slow/unreachable
+      # Finacle corridor holds that one thread for up to ~30s and starves the midnight EOD
+      # cron jobs (runEodProcess / runAuditLogArchival) — they appear to "not execute".
+      # A small pool guarantees the EOD jobs always get a thread. Cross-instance single-run
+      # is still enforced by @SchedulerLock (ShedLock), independent of pool size.
+      pool:
+        size: 5
+      thread-name-prefix: gotechly-scheduling-
+  liquibase:
+    change-log: classpath:config/liquibase/master.xml
+
+server:
+  # Without this, SIGTERM severs every in-flight request the instant it lands — including a
+  # payment already posted to core banking and still awaiting its answer, which leaves the
+  # transaction unconfirmed with nothing on the wire to say so. Graceful shutdown stops
+  # accepting new connections first, then drains for up to
+  # spring.lifecycle.timeout-per-shutdown-phase.
+  #
+  # This is the backstop, not the plan: an instance should be drained at the Gateway and
+  # confirmed idle *before* it is restarted. See docs/controlled-plugin-deployment.md.
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+gotechly:
+  eod:
+    # payment_log -> history_payment_log (settled) / pending_payment_log (everything else),
+    # nightly at 00:00. Rows younger than the retention window stay in the live table.
+    #
+    # FALLBACK ONLY. All three retention windows below live in app_configs, read fresh at the start
+    # of every run so one value governs every node and changing one needs no deploy:
+    #   INSERT INTO app_configs (config_id, config_value) VALUES
+    #     ('eod.payment-log-retention-days',       '3'),
+    #     ('eod.audit-log-retention-days',         '3'),
+    #     ('eod.deferred-recovery-retention-days', '30');
+    # The yml keys are what each job uses when its row is missing, blank or not a number.
+    #
+    # Age is the only eligibility test; status just picks the destination. 0 is the original
+    # behaviour (drain everything visible at the run instant). The window is measured on created_at —
+    # the indexed column the other two jobs also key on — so it means "created that long ago", not
+    # "settled that long ago". Raising it grows payment_log and lengthens each run; it also widens
+    # what the portal's live view, db-logger's status lookup and the receiver-name cache find before
+    # falling back to the history/pending twins.
+    payment-log-retention-days: 2
+    # audit_log -> history_audit_log, nightly at 00:05.
+    #
+    # FALLBACK ONLY — live value is the app_configs row 'eod.audit-log-retention-days'.
+    audit-log-retention-days: 3
+    # deferred_recovery -> history_deferred_recovery, nightly at 00:10.
+    #
+    # FALLBACK ONLY — live value is the app_configs row 'eod.deferred-recovery-retention-days'.
+    #
+    # Only RECONCILED and CANCELLED rows move, and no value of this window changes that. PENDING/
+    # IN_PROGRESS are live work at any age, and NEEDS_ATTENTION is an open money position whose only
+    # visibility is the recovery metrics count — archiving it would make an unresolved position look
+    # settled. There is no key, here or in app_configs, to include it.
+    deferred-recovery-retention-days: 30
+    # Rows per transaction. Capped at 1000 in code: the move is keyed on an IN list; keeping it
+    # under 1000 also keeps the database portable (Oracle rejects larger lists, ORA-01795).
+    archive-batch-size: 500
+    # Wall-clock budget for one archival run. MUST stay below the PT30M ShedLock lease: once the
+    # lease expires another instance may start a second run over the same rows. The job yields and
+    # finishes the remainder the next night.
+    archive-max-runtime: PT20M
+  rendezvous:
+    # Sync-over-async payment result hand-off. Cross-instance delivery rides the embedded Hazelcast
+    # cluster below (a self-expiring IMap); no Redis/Valkey dependency. key-ttl-seconds sets the map
+    # TTL, wait-timeout-seconds the parked caller's max wait.
+    key-prefix: "xp:result:"
+    wait-timeout-seconds: 3
+    key-ttl-seconds: 30
+  partner:
+    encryption:
+      secret-key: ${GOTECHLY_PARTNER_ENCRYPTION_KEY:change-me-in-production-use-256bit-key}
+  appconfigs:
+    # AES-256-GCM key for encrypting sensitive app_configs values (is_sensitive=true).
+    # Dedicated key, separate from the partner key, so the two rotate independently.
+    # MUST be overridden in production via GOTECHLY_APPCONFIGS_ENCRYPTION_KEY.
+    encryption:
+      secret-key: ${GOTECHLY_APPCONFIGS_ENCRYPTION_KEY:change-me-in-production-use-256bit-key}
+  security:
+    internal-api-key:
+      enabled: true
+      header-name: X-Internal-Api-Key
+      secret: ${GOTECHLY_INTERNAL_API_KEY:change-me-in-production}
+  q2:
+    deploy-dir: deploy
+  # Embedded Hazelcast cluster for multi-instance coordination (config-refresh fan-out +
+  # idempotency dedup). Empty member list => single-member cluster (dev / single instance).
+  # In production list every Core host:port so members can form the cluster over TCP/IP.
+  hazelcast:
+    cluster-name: ${GOTECHLY_HAZELCAST_CLUSTER:gotechly-core}
+    port: ${GOTECHLY_HAZELCAST_PORT:5701}
+    # Co-located dev instances each take the next free port (5701/5702/5703). On separate
+    # prod hosts, set members to each host:5701 and they all bind the base port.
+    port-auto-increment: ${GOTECHLY_HAZELCAST_PORT_AUTO_INCREMENT:true}
+    port-count: ${GOTECHLY_HAZELCAST_PORT_COUNT:3}
+    # Default mirrors the three Core instances (dev: co-located on localhost). In production
+    # override GOTECHLY_HAZELCAST_MEMBERS with the real host:port of each Core node.
+    members: ${GOTECHLY_HAZELCAST_MEMBERS:localhost:5701,localhost:5702,localhost:5703}
+    # Self-heal sweep interval — a member that missed a refresh broadcast catches up here.
+    reconcile-ms: 60000
+  # POST-safe retry dedup (Redis-free; backed by the Hazelcast cluster above).
+  idempotency:
+    enabled: true
+    header-name: Idempotency-Key
+    ttl-seconds: 86400
+    map-backup-count: 1
+    path-prefixes:
+      - /payment/api/
+  plugins:
+    dir: plugins
+    # Per-payment-type bulkheads for plugin handler calls.
+    #
+    # Provider calls are blocking and the SPI reactive default carries no scheduler of its own, so
+    # before this they ran on the SHARED Schedulers.boundedElastic(): ~10 threads per core behind a
+    # 100,000-deep queue. One provider timing out held every thread, and the unbounded queue meant
+    # work was buried rather than refused — every other corridor stalled behind it and the request
+    # threads waiting on them exhausted Tomcat.
+    #
+    # queue-cap is the important number: worst-case wait before a queued call starts is roughly
+    # (queue-cap / thread-cap) x that corridor timeout. Size it against the provider timeout, and
+    # treat sustained rejections as a sick provider rather than a cap to raise.
+    isolation:
+      enabled: true
+      thread-cap: 16
+      queue-cap: 25
+      ttl-seconds: 60
+      overrides: {}
+    # Dev convenience only — OVERRIDDEN TO false IN application-prod.yml. Reloading unloads
+    # the old JAR, which ends in classLoader.close(); a request executing inside that plugin
+    # at the time loses its classloader mid-flight. See the prod block for the full reasoning
+    # and docs/controlled-plugin-deployment.md for the deploy procedure that
+    # replaces it.
+    hot-reload: true
+    # Cross-plugin globals stored in the app_configs table under config_ids
+    # prefixed with "core." (e.g. core.mtls-keystore-password). Listed keys are
+    # validated at Core startup; if any row is missing Core refuses to start.
+    # Empty by default — opt-in per deployment. Override GOTECHLY_PLUGIN_VERIFY=false
+    # to skip in dev (same toggle as JAR signature verification).
+    required-global-configs:
+      - core.mtls-keystore-path
+      - core.mtls-keystore-password
+      - core.mtls-truststore-path
+      - core.mtls-truststore-password
+    verification:
+      enabled: ${GOTECHLY_PLUGIN_VERIFY:true}
+      truststore-path: ${GOTECHLY_PLUGIN_TRUSTSTORE_PATH:classpath:config/plugin-authors-truststore.p12}
+      truststore-password: ${GOTECHLY_PLUGIN_TRUSTSTORE_PASSWORD:changeit}
+      truststore-type: PKCS12
+      require-all-jar-entries-signed: true
+      require-manifest-for-yaml: true
+  callback:
+    connection-timeout-ms: 5000
+    read-timeout-ms: 10000
+    write-timeout-ms: 5000
+    response-timeout-ms: 10000
+    pool-max-connections: 500
+    pool-max-idle-time-ms: 30000
+    pool-max-life-time-ms: 300000
+    pool-pending-acquire-timeout-ms: 45000
+    pool-max-pending-acquire: 1000
+    trust-all-certs: true
+  # Shape of the response returned to channels (ChannelPaymentResponse), used by both the
+  # synchronous /payment/api/v1/b2c/reactive/* endpoints and the callback stage.
+  #
+  # additional-fields is an ALLOWLIST, keyed by payment type, of keys lifted out of
+  # Details.additionalFields into the response's own additionalFields map. Nothing is copied
+  # unless it is named here — that map is the pipeline's internal scratch space (ISO msgIds,
+  # settlement dates, instructing-agent codes, CBS replay tokens), so a passthrough would leak
+  # exactly what the response DTO exists to withhold.
+  #
+  # Keys are matched case-sensitively; a configured key absent from a given transaction is
+  # skipped. Prefer promoting a key that recurs across corridors to a real field on the record.
+  # To enable, replace the '{}' below with the entries you want, e.g.
+  #   additional-fields:
+  #     RNDPS:
+  #       - settlementDate
+  #     MPESA:
+  #       - ConversationID
+  # Leave it as '{}' when empty — a bare 'additional-fields:' binds as an empty String and Spring
+  # fails to start with a ConverterNotFoundException.
+  channel-response:
+    additional-fields: { }
+  oauth2-token-provider:
+    connect-timeout: 5s
+    response-timeout: 10s
+    read-timeout: 10s
+    write-timeout: 10s
+    pool:
+      max-connections: 10
+      pending-acquire-max-count: 20
+      pending-acquire-timeout: 5s
+      max-idle-time: 60s
+      max-life-time: 5m
+      evict-in-background: 30s
+    refresh-scheduler:
+      core-pool-size: 1
+    backoff:
+      retryable-delay: 30s
+      non-retryable-delay: 15m
+    trust-all-certs: true
+  util:
+    custom:
+      httpclient:
+        connection-timeout-ms: 5000
+        read-timeout-ms: 30000
+        write-timeout-ms: 5000
+        response-timeout-ms: 30000
+        pool-max-connections: 100
+        pool-max-idle-time-ms: 60000
+        pool-max-life-time-ms: 300000
+        pool-pending-acquire-timeout-ms: 45000
+        trust-all-certs: false
+  # Deferred reconciler. Drives core banking into line with the answer a scheme was already given,
+  # for transactions where a posting timed out and the outcome had to be declared before it was known.
+  #
+  # It is triggered by listing the `deferred-recovery` stage in a compensation, after the stage that
+  # answers the scheme:
+  #
+  #   compensation:
+  #     cbc-payment-unconfirmed:
+  #       - in-callback-handler     # inside the 40s
+  #       - db-update
+  #       - deferred-recovery       # then make core banking match what we just said
+  #
+  # Each attempt runs the gate phase (cbc-txn-status) and, from its three-way answer, either the
+  # reverse phase, the repost phase, or nothing. Those phases are ordinary pipeline apiTypes resolved
+  # per payment type, so a corridor declares them in its own plugin config; one left unconfigured
+  # disables that repair for that corridor.
+  recovery:
+    enabled: true
+    # The in-memory working set. Overflow is NOT rejected — the durable deferred_recovery row is
+    # written first, so a full queue only means the sweeper gets there instead. Rising
+    # queue.deferredOffers on /api/v1/admin/recovery/metrics is the early warning that core banking
+    # has been failing for a while.
+    queue-capacity: 500
+    # The real concurrency limit against core banking.
+    workers: 4
+    # Whichever of these trips first sends the row to NEEDS_ATTENTION, which is the number to alert
+    # on: it means a scheme holds an answer core banking does not match, and only a human can close
+    # that. give-up-after is the one that matters — an outage lasting hours would otherwise exhaust
+    # the attempts in minutes and escalate work that only needed patience.
+    max-attempts: 5
+    give-up-after: PT3H
+    # How long a claim is honoured before another instance may take the row. This is what lets an
+    # instance die mid-attempt without stranding the transaction.
+    lease-duration: PT5M
+    sweep-interval: PT60S
+    sweep-batch-size: 200
+    # Halt codes from a repair phase that mean the repair will never succeed. The row escalates to
+    # NEEDS_ATTENTION on the first refusal instead of spending its remaining attempts re-asking a
+    # question core banking has already answered — a customer under a credit restriction declines
+    # every repost identically, so the twelve attempts over six hours reach the same terminal state
+    # after eleven more pointless postings.
+    #
+    # NEVER list a timeout code here. cbc-payment-unconfirmed means the posting may have landed and
+    # the next attempt's gate is what settles it; listing it converts a self-healing retry into a
+    # human's problem. cbc-reversal-unconfirmed likewise.
+    #
+    # cbc-reversal-failed is here only because TransactionReversalStage no longer overloads it with
+    # "Transaction already reversed" — that now raises cbc-reversal-already-done, below.
+    terminal-halt-codes:
+      - cbc-payment-failed
+      - cbs-payment-acc-missing
+      - cbc-reversal-failed
+      - cbc-reversal-payment-missing
+    # The opposite of terminal: core banking already holds the end state the repair wanted, so the
+    # row is RECONCILED rather than retried or escalated. Checked first — reading "already reversed"
+    # as either a failure or a refusal calls a human to a row that is correct, which is how an alert
+    # queue stops being believed.
+    already-satisfied-halt-codes:
+      - cbc-reversal-already-done
+    # Deliberately unset. Used only when a corridor does not stamp
+    # Details.additionalFields.declaredOutcome AND the transaction status says nothing either; with
+    # no value here such a transaction is recorded as UNKNOWN and escalated to NEEDS_ATTENTION
+    # instead of being guessed at.
+    #
+    # There is no globally safe value: the declared outcome decides which repair runs, and the two
+    # move money in opposite directions. FAILED would reverse a credit the scheme was told had
+    # settled — exactly backwards for R-NDPS, which answers ACSC on a timeout — while SUCCESS would
+    # post money for a payment the scheme rejected. The right answer depends on what a corridor's
+    # callback declares, so setting this is an explicit assertion about this deployment's corridors,
+    # not a safety net.
+    #
+    # The fix for a corridor that lands here is to stamp declaredOutcome in its callback handler, as
+    # RndpsInboundCallbackHandler does.
+    # default-declared-outcome: FAILED
+    backoff:
+      initial: PT30S
+      multiplier: 2.0
+      max: PT10M
+      # Scatters the delay so an outage does not synchronise every waiting transaction onto the same
+      # instant and arrive as one herd against a host that has only just recovered.
+      jitter: 0.2
+    phases:
+      gate: recovery-gate
+      reverse: recovery-reverse
+      repost: recovery-repost
+      confirm: recovery-confirm
+  pipeline:
+    max-compensation-depth: 3
+    # Status enquiry short-circuit (db-logger, status-processing phase only).
+    #
+    # An outward payment is acknowledged PENDING and settled later by the provider's result
+    # callback, which stamps the final outcome on the payment_log row. Once that has happened the
+    # provider has nothing left to tell us, so db-logger answers the enquiry from the stored
+    # transaction and halts the pipeline — the status handler never makes the round-trip.
+    # A transaction still in flight carries on to the handler as before.
+    #
+    # final-statuses is the terminal Details.status vocabulary, matched case-insensitively.
+    # Anything not listed — PENDING, a blank status, a code ops has not classified — is treated
+    # as in flight, which is the safe direction to be wrong in. ACSP ("accepted, settlement in
+    # process") is deliberately absent for the same reason.
+    # Set enabled: false to always ask the provider.
+    status-short-circuit:
+      enabled: true
+      final-statuses:
+        - COMPLETED
+        - SUCCESS
+        - FAILED
+        - REJECTED
+    default-stages:
+      inward:
+        validation:
+          - aml-screening
+          - pci-dss-masking
+          - in-validation-handler
+        payment-processing:
+          - aml-screening
+          - in-payment-handler
+        result-processing:
+          - in-result-handler
+          - callback
+        status-processing:
+          - in-status-handler
+      outward:
+        validation:
+          - db-logger
+          - aml-screening
+          - pci-dss-masking
+          - out-validation-handler
+        async-validation:
+          - aml-screening
+          - pci-dss-masking
+          - out-async-validation-handler
+        payment-processing:
+          - aml-screening
+          - out-payment-handler
+        plugin-response-processing:
+          - callback
+        status-processing:
+          - out-status-handler

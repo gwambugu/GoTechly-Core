@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        ShedLock coordination table. Backs @SchedulerLock on EodService so that
+        in a multi-instance Core deployment only one instance executes the daily
+        EOD job (payment_log archival + truncate) and the audit_log archival.
+
+        Schema matches ShedLock's JdbcTemplateLockProvider contract. Liquibase
+        type abstractions render correctly on both Postgres (dev) and Oracle
+        (prod): varchar -> VARCHAR2 on Oracle, timestamp -> TIMESTAMP on both.
+    -->
+    <changeSet id="20260513100000-1" author="gotechly">
+        <createTable tableName="shedlock">
+            <column name="name" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="lock_until" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="locked_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="locked_by" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="shedlock"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

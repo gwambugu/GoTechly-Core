@@ -1,0 +1,28 @@
+<txnmgr name="mpesaTransactionManager_1" logger="Q2" class="org.jpos.transaction.TransactionManager">
+    <property name="input-space" value="tspace:default"/>
+    <property name="queue" value="mpesaB2CQueue_1" />
+    <property name="space" value="tspace:mpesaB2CSpace_1" />
+    <property name="sessions" value="10" />
+    <property name="max-sessions" value="20"/>
+    <property name="debug" value="true" />
+    <property name="logger" value="Q2"/>
+    <participant class="com.dotechly.gotechly.plugin.mpesa.outbound.tm.participant.common.RequestTypeSelector" logger="Q2"/>
+    <group name="VALIDATION_REQUEST">
+        <participant class="com.dotechly.gotechly.plugin.mpesa.outbound.tm.participant.ValidationRequestParticipant" logger="Q2">
+            <property name="useAsync" value="false" />
+            <property name="timeout" value="20000" />
+        </participant>
+    </group>
+    <group name="PAYMENT_REQUEST">
+        <participant class="com.dotechly.gotechly.plugin.mpesa.outbound.tm.participant.PaymentRequestParticipant" logger="Q2">
+            <property name="useAsync" value="false" />
+            <property name="timeout" value="20000" />
+        </participant>
+    </group>
+    <group name="STATUS_REQUEST">
+        <participant class="com.dotechly.gotechly.plugin.mpesa.outbound.tm.participant.StatusRequestParticipant" logger="Q2">
+            <property name="useAsync" value="false" />
+            <property name="timeout" value="20000" />
+        </participant>
+    </group>
+</txnmgr>

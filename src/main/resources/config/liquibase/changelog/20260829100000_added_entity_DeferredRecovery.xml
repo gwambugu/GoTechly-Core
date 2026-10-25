@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        deferred_recovery: one row per transaction whose core-banking state has to be brought into
+        line with the answer a scheme was already given.
+
+        This table is the source of truth for the reconciler; the in-memory queue is only a working
+        set. A restart empties the queue, and what it would otherwise lose is exactly the population
+        where money may sit posted in core banking while the scheme has been told the transfer
+        failed.
+
+        Kept separate from payment_log on purpose: different lifecycle, different retention (the EOD
+        job archives payment_log), and "what is stuck right now" stays an indexed lookup rather than
+        a scan of every transaction ever taken.
+    -->
+    <changeSet id="20260829100000-1" author="gotechly">
+        <createTable tableName="deferred_recovery">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <!-- Unique: a second enqueue is the same work, and two rows would mean two instances
+                 reversing the same posting. -->
+            <column name="request_id" type="varchar(70)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="payment_type" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="direction" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- SUCCESS | FAILED - what the scheme was told. Written once, never updated. -->
+            <column name="declared_outcome" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- PENDING | IN_PROGRESS | RECONCILED | NEEDS_ATTENTION | CANCELLED -->
+            <column name="state" type="varchar(24)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- POSTED | NOT_POSTED | UNKNOWN - what the gate last established -->
+            <column name="last_cbs_state" type="varchar(20)"/>
+            <!-- NOTHING_TO_DO | REVERSE | REPOST | RETRY -->
+            <column name="last_action" type="varchar(24)"/>
+            <column name="trigger_halt_code" type="varchar(100)"/>
+            <column name="last_phase" type="varchar(100)"/>
+            <column name="last_detail" type="varchar(500)"/>
+            <column name="attempts" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="next_attempt_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Hard stop. A core-banking outage lasting hours would otherwise burn the attempt
+                 budget in minutes and escalate work that only needed patience. -->
+            <column name="deadline_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="owner_instance" type="varchar(100)"/>
+            <column name="claimed_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Optimistic lock: two instances claiming one row, the loser's flush fails rather than
+                 both of them reversing the same posting. -->
+            <column name="row_version" type="bigint" defaultValueNumeric="0"/>
+        </createTable>
+
+        <!-- The sweeper's query: due rows, by state. -->
+        <createIndex tableName="deferred_recovery" indexName="idx_def_rec_state_next">
+            <column name="state"/>
+            <column name="next_attempt_at"/>
+        </createIndex>
+        <createIndex tableName="deferred_recovery" indexName="idx_def_rec_created_at">
+            <column name="created_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="deferred_recovery"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260218140000-1" author="gotechly">
+        <!-- Step 1: Add new column -->
+        <addColumn tableName="endpoint_configs">
+            <column name="req_template_tmp" type="CLOB"/>
+        </addColumn>
+
+        <!-- Step 2: Copy data -->
+        <update tableName="endpoint_configs">
+            <column name="req_template_tmp" valueComputed="req_template"/>
+        </update>
+
+        <!-- Step 3: Drop old column -->
+        <dropColumn tableName="endpoint_configs" columnName="req_template"/>
+
+        <!-- Step 4: Rename new column -->
+        <renameColumn tableName="endpoint_configs"
+                      oldColumnName="req_template_tmp"
+                      newColumnName="req_template"
+                      columnDataType="CLOB"/>
+
+    </changeSet>
+</databaseChangeLog>

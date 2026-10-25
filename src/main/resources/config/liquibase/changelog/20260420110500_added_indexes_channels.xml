@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260420110500-1" author="gotechly">
+        <createIndex indexName="idx_channels_system_api" tableName="channels">
+            <column name="system_name"/>
+            <column name="api_name"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

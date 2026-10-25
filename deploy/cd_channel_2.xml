@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<channel-adaptor name='cd-fin-adaptor_2'
+    class="org.jpos.q2.iso.ChannelAdaptor" logger="Q2">
+ <channel class="com.dotechly.gotechly.core.pipeline.stages.cbs.finacle.cbc.q2.channels.FinChannel" logger="Q2"
+          packager="com.dotechly.gotechly.core.pipeline.stages.cbs.finacle.cbc.q2.packagers.FinPackagersFinnacle" header="495379303036303030303430">
+  <property name="host" value="${GOTECHLY_CBS_CD_HOST:127.0.0.1}" />
+  <property name="port" value="37000" />
+  <property name="connection-timeout" value="15000" /> <!-- 15 seconds -->
+  <property name="timeout" value="300000" /> <!-- five minutes -->
+  <property name="keep-alive" value="true" />
+ </channel>
+ <in>cd_fin-send_2</in>
+ <out>cd_fin-receive_2</out>
+ <reconnect-delay>10000</reconnect-delay>
+</channel-adaptor>

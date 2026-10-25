@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <changeSet id="20260216140000-1" author="gotechly">
+        <createTable tableName="endpoint_configs">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="service_name" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="service_type" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="request_type" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="req_template" type="CLOB">
+                <constraints nullable="true" />
+            </column>
+            <column name="endpoint" type="varchar(300)">
+                <constraints nullable="true" />
+            </column>
+            <column name="content_type" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="additional_header_1" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="additional_header_2" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="additional_header_3" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="status_exp" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="tran_id_exp" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="error_exp" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="timeout" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="time_out_exp" type="varchar(500)">
+                <constraints nullable="true" />
+            </column>
+            <column name="provider_code" type="varchar(300)">
+                <constraints nullable="true" />
+            </column>
+            <column name="param_1" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="param_2" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="param_3" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="modified_by" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+            <column name="modify_date" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="true" />
+            </column>
+            <column name="hm" type="varchar(200)">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

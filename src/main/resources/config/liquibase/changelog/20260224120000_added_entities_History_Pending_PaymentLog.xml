@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20260224120000-1" author="gotechly">
+        <createTable tableName="history_payment_log">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="payment_type" type="varchar(100)"/>
+            <column name="request_type" type="varchar(100)"/>
+            <column name="request_id" type="varchar(50)"/>
+            <column name="request_timestamp" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="amount" type="decimal(21,2)"/>
+            <column name="currency_code" type="varchar(3)"/>
+            <column name="charge_amount" type="decimal(21,2)"/>
+            <column name="charge_currency_code" type="varchar(3)"/>
+            <column name="processing_code" type="varchar(20)"/>
+            <column name="app_instance_id" type="varchar(100)"/>
+            <column name="app_host" type="varchar(50)"/>
+            <column name="status" type="varchar(100)"/>
+            <column name="api_mode" type="varchar(100)"/>
+            <column name="response_code" type="varchar(50)"/>
+            <column name="response_desc" type="varchar(300)"/>
+            <column name="response_timestamp" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="source_ip" type="varchar(50)"/>
+            <column name="source_system" type="varchar(200)"/>
+            <column name="source_system_call_back_url" type="varchar(300)"/>
+            <column name="free_text_1" type="varchar(300)"/>
+            <column name="free_text_2" type="varchar(300)"/>
+            <column name="hash_1" type="varchar(500)"/>
+            <column name="hash_2" type="varchar(500)"/>
+            <column name="record_version" type="varchar(100)"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="sender_type" type="varchar(100)"/>
+            <column name="sender_account" type="varchar(50)"/>
+            <column name="sender_currency_code" type="varchar(3)"/>
+            <column name="sender_business_number" type="varchar(50)"/>
+            <column name="sender_tran_code" type="varchar(20)"/>
+            <column name="sender_reference" type="varchar(100)"/>
+            <column name="sender_msisdn" type="varchar(20)"/>
+            <column name="sender_narration" type="varchar(300)"/>
+            <column name="sender_sender_name" type="varchar(300)"/>
+            <column name="sender_party_id" type="varchar(200)"/>
+            <column name="sender_country_code" type="varchar(3)"/>
+            <column name="receiver_type" type="varchar(100)"/>
+            <column name="receiver_account" type="varchar(50)"/>
+            <column name="receiver_currency_code" type="varchar(3)"/>
+            <column name="receiver_business_number" type="varchar(50)"/>
+            <column name="receiver_tran_code" type="varchar(20)"/>
+            <column name="receiver_reference" type="varchar(100)"/>
+            <column name="receiver_narration" type="varchar(300)"/>
+            <column name="receiver_msisdn" type="varchar(20)"/>
+            <column name="receiver_receiver_name" type="varchar(300)"/>
+            <column name="receiver_party_id" type="varchar(200)"/>
+            <column name="receiver_country_code" type="varchar(3)"/>
+            <column name="cbs_request_id" type="varchar(50)"/>
+            <column name="cbs_req" type="blob"/>
+            <column name="cbs_req_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="cbs_narration" type="varchar(300)"/>
+            <column name="cbs_host" type="varchar(50)"/>
+            <column name="cbs_dr_acc" type="varchar(20)"/>
+            <column name="cbs_cr_acc" type="varchar(20)"/>
+            <column name="transaction_code" type="varchar(20)"/>
+            <column name="cbs_status" type="varchar(100)"/>
+            <column name="cbs_api_mode" type="varchar(100)"/>
+            <column name="cbs_resp_code" type="varchar(50)"/>
+            <column name="cbs_resp_desc" type="varchar(300)"/>
+            <column name="cbs_tran_ref" type="varchar(50)"/>
+            <column name="cbs_resp_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="cbs_retry_count" type="integer"/>
+            <column name="cbs_rev_resp_code" type="varchar(50)"/>
+            <column name="cbs_rev_resp_desc" type="varchar(300)"/>
+            <column name="sender_additional_fields" type="clob"/>
+            <column name="receiver_additional_fields" type="clob"/>
+            <column name="details_additional_fields" type="clob"/>
+            <column name="cbs_additional_fields" type="clob"/>
+            <column name="psp_additional_fields" type="clob"/>
+            <column name="psp_request_id" type="varchar(100)"/>
+            <column name="psp_id" type="varchar(100)"/>
+            <column name="psp_request_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="psp_narration" type="varchar(300)"/>
+            <column name="psp_host_url" type="varchar(200)"/>
+            <column name="psp_dr_account" type="varchar(20)"/>
+            <column name="psp_cr_account" type="varchar(20)"/>
+            <column name="psp_status" type="varchar(100)"/>
+            <column name="psp_api_mode" type="varchar(100)"/>
+            <column name="psp_request" type="blob"/>
+            <column name="psp_response" type="blob"/>
+            <column name="psp_response_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="psp_response_code" type="varchar(100)"/>
+            <column name="psp_response_desc" type="varchar(300)"/>
+            <column name="psp_result" type="blob"/>
+            <column name="psp_result_code" type="varchar(100)"/>
+            <column name="psp_result_desc" type="varchar(300)"/>
+            <column name="psp_reference_code" type="varchar(100)"/>
+            <column name="psp_result_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="psp_retry_count" type="integer"/>
+            <column name="psp_rev_resp_code" type="varchar(100)"/>
+            <column name="psp_rev_resp_desc" type="varchar(300)"/>
+            <column name="status_timestamp" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="status_count" type="integer"/>
+            <column name="status_response_code" type="varchar(100)"/>
+            <column name="status_response_description" type="varchar(300)"/>
+        </createTable>
+
+        <createTable tableName="pending_payment_log">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="payment_type" type="varchar(100)"/>
+            <column name="request_type" type="varchar(100)"/>
+            <column name="request_id" type="varchar(50)"/>
+            <column name="request_timestamp" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="amount" type="decimal(21,2)"/>
+            <column name="currency_code" type="varchar(3)"/>
+            <column name="charge_amount" type="decimal(21,2)"/>
+            <column name="charge_currency_code" type="varchar(3)"/>
+            <column name="processing_code" type="varchar(20)"/>
+            <column name="app_instance_id" type="varchar(100)"/>
+            <column name="app_host" type="varchar(50)"/>
+            <column name="status" type="varchar(100)"/>
+            <column name="api_mode" type="varchar(100)"/>
+            <column name="response_code" type="varchar(50)"/>
+            <column name="response_desc" type="varchar(300)"/>
+            <column name="response_timestamp" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="source_ip" type="varchar(50)"/>
+            <column name="source_system" type="varchar(200)"/>
+            <column name="source_system_call_back_url" type="varchar(300)"/>
+            <column name="free_text_1" type="varchar(300)"/>
+            <column name="free_text_2" type="varchar(300)"/>
+            <column name="hash_1" type="varchar(500)"/>
+            <column name="hash_2" type="varchar(500)"/>
+            <column name="record_version" type="varchar(100)"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="sender_type" type="varchar(100)"/>
+            <column name="sender_account" type="varchar(50)"/>
+            <column name="sender_currency_code" type="varchar(3)"/>
+            <column name="sender_business_number" type="varchar(50)"/>
+            <column name="sender_tran_code" type="varchar(20)"/>
+            <column name="sender_reference" type="varchar(100)"/>
+            <column name="sender_msisdn" type="varchar(20)"/>
+            <column name="sender_narration" type="varchar(300)"/>
+            <column name="sender_sender_name" type="varchar(300)"/>
+            <column name="sender_party_id" type="varchar(200)"/>
+            <column name="sender_country_code" type="varchar(3)"/>
+            <column name="receiver_type" type="varchar(100)"/>
+            <column name="receiver_account" type="varchar(50)"/>
+            <column name="receiver_currency_code" type="varchar(3)"/>
+            <column name="receiver_business_number" type="varchar(50)"/>
+            <column name="receiver_tran_code" type="varchar(20)"/>
+            <column name="receiver_reference" type="varchar(100)"/>
+            <column name="receiver_narration" type="varchar(300)"/>
+            <column name="receiver_msisdn" type="varchar(20)"/>
+            <column name="receiver_receiver_name" type="varchar(300)"/>
+            <column name="receiver_party_id" type="varchar(200)"/>
+            <column name="receiver_country_code" type="varchar(3)"/>
+            <column name="cbs_request_id" type="varchar(50)"/>
+            <column name="cbs_req" type="blob"/>
+            <column name="cbs_req_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="cbs_narration" type="varchar(300)"/>
+            <column name="cbs_host" type="varchar(50)"/>
+            <column name="cbs_dr_acc" type="varchar(20)"/>
+            <column name="cbs_cr_acc" type="varchar(20)"/>
+            <column name="transaction_code" type="varchar(20)"/>
+            <column name="cbs_status" type="varchar(100)"/>
+            <column name="cbs_api_mode" type="varchar(100)"/>
+            <column name="cbs_resp_code" type="varchar(50)"/>
+            <column name="cbs_resp_desc" type="varchar(300)"/>
+            <column name="cbs_tran_ref" type="varchar(50)"/>
+            <column name="cbs_resp_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="cbs_retry_count" type="integer"/>
+            <column name="cbs_rev_resp_code" type="varchar(50)"/>
+            <column name="cbs_rev_resp_desc" type="varchar(300)"/>
+            <column name="sender_additional_fields" type="clob"/>
+            <column name="receiver_additional_fields" type="clob"/>
+            <column name="details_additional_fields" type="clob"/>
+            <column name="cbs_additional_fields" type="clob"/>
+            <column name="psp_additional_fields" type="clob"/>
+            <column name="psp_request_id" type="varchar(100)"/>
+            <column name="psp_id" type="varchar(100)"/>
+            <column name="psp_request_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="psp_narration" type="varchar(300)"/>
+            <column name="psp_host_url" type="varchar(200)"/>
+            <column name="psp_dr_account" type="varchar(20)"/>
+            <column name="psp_cr_account" type="varchar(20)"/>
+            <column name="psp_status" type="varchar(100)"/>
+            <column name="psp_api_mode" type="varchar(100)"/>
+            <column name="psp_request" type="blob"/>
+            <column name="psp_response" type="blob"/>
+            <column name="psp_response_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="psp_response_code" type="varchar(100)"/>
+            <column name="psp_response_desc" type="varchar(300)"/>
+            <column name="psp_result" type="blob"/>
+            <column name="psp_result_code" type="varchar(100)"/>
+            <column name="psp_result_desc" type="varchar(300)"/>
+            <column name="psp_reference_code" type="varchar(100)"/>
+            <column name="psp_result_time" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="psp_retry_count" type="integer"/>
+            <column name="psp_rev_resp_code" type="varchar(100)"/>
+            <column name="psp_rev_resp_desc" type="varchar(300)"/>
+            <column name="status_timestamp" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="status_count" type="integer"/>
+            <column name="status_response_code" type="varchar(100)"/>
+            <column name="status_response_description" type="varchar(300)"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

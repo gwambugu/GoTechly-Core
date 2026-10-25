@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        history_deferred_recovery: settled reconciliation rows, moved out of deferred_recovery so the
+        live table stays the size of the work actually outstanding.
+
+        deferred_recovery is a work queue that the sweeper scans on (state, next_attempt_at) every
+        60s. Nothing ever deleted from it, so it grew with every reconciled transaction and that scan
+        got slower forever. The archival moves only rows that have finished; the live table then
+        holds "what is stuck right now", which is what it was always meant to mean.
+
+        Columns mirror deferred_recovery exactly, plus archived_at. The id is carried across rather
+        than regenerated: it is drawn from GLOBAL_SEQ so it is unique across both tables, and keeping
+        it means a row referenced in a log line or a support ticket is still findable after archival.
+    -->
+    <changeSet id="20260831100000-1" author="gotechly">
+        <createTable tableName="history_deferred_recovery">
+            <column name="id" type="bigint">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <!--
+                Unique here as well as on the live table, and deliberately so: it is the backstop
+                against the archival running twice over the same rows. An archived row cannot be
+                requeued (requeue only finds rows still in deferred_recovery), so there is no
+                legitimate way for one request_id to arrive twice. Without this a double run
+                duplicates silently; with it, it fails loudly.
+            -->
+            <column name="request_id" type="varchar(70)">
+                <constraints nullable="false" unique="true"
+                             uniqueConstraintName="uk_hist_def_rec_req_id"/>
+            </column>
+            <column name="payment_type" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="direction" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="declared_outcome" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Only ever RECONCILED or CANCELLED here. NEEDS_ATTENTION is never archived. -->
+            <column name="state" type="varchar(24)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_cbs_state" type="varchar(20)"/>
+            <column name="last_action" type="varchar(24)"/>
+            <column name="trigger_halt_code" type="varchar(100)"/>
+            <column name="last_phase" type="varchar(100)"/>
+            <column name="last_detail" type="varchar(500)"/>
+            <column name="attempts" type="int" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="next_attempt_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="deadline_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="owner_instance" type="varchar(100)"/>
+            <column name="claimed_at" type="TIMESTAMP WITH TIME ZONE"/>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="row_version" type="bigint" defaultValueNumeric="0"/>
+            <!--
+                When the archival moved it, as distinct from updated_at (when the reconciliation
+                finished). Two different events, and this is the one a later purge of this table has
+                to key on — otherwise the history table becomes the table that grows forever.
+            -->
+            <column name="archived_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- The clock for a future purge of this table. -->
+        <createIndex tableName="history_deferred_recovery" indexName="idx_hist_def_rec_archived_at">
+            <column name="archived_at"/>
+        </createIndex>
+        <!-- Support lookups: "what happened to this transaction" long after it settled. -->
+        <createIndex tableName="history_deferred_recovery" indexName="idx_hist_def_rec_created_at">
+            <column name="created_at"/>
+        </createIndex>
+        <createIndex tableName="history_deferred_recovery" indexName="idx_hist_def_rec_pay_type">
+            <column name="payment_type"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="history_deferred_recovery"/>
+        </rollback>
+    </changeSet>
+
+    <!--
+        The archival predicate is (state, updated_at); the existing indexes are (state,
+        next_attempt_at), request_id and created_at, none of which serves it. Without this the
+        nightly job full-scans deferred_recovery — which is the table this whole change exists to
+        stop scanning.
+    -->
+    <changeSet id="20260831100000-2" author="gotechly">
+        <createIndex tableName="deferred_recovery" indexName="idx_def_rec_state_updated">
+            <column name="state"/>
+            <column name="updated_at"/>
+        </createIndex>
+        <rollback>
+            <dropIndex tableName="deferred_recovery" indexName="idx_def_rec_state_updated"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
