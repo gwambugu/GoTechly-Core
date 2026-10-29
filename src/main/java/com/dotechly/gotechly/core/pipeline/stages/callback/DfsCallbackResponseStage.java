@@ -3,6 +3,7 @@ package com.dotechly.gotechly.core.pipeline.stages.callback;
 import com.dotechly.gotechly.core.pipeline.PipelineContext;
 import com.dotechly.gotechly.core.pipeline.PipelineStage;
 import com.dotechly.gotechly.spi.service.dto.payment.CBS;
+import com.dotechly.gotechly.spi.service.dto.payment.Details;
 import com.dotechly.gotechly.spi.service.dto.payment.PaymentLogSPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,9 +55,35 @@ public class DfsCallbackResponseStage implements PipelineStage {
     private static final Logger LOG = LoggerFactory.getLogger(DfsCallbackResponseStage.class);
 
     /** The one corridor whose callback reply carries a verdict this stage understands. */
-    private static final String DFS_INWARD_REQUEST_TYPE = "DFS-CORE.INWARD_PAYMENT";
+    public static final String DFS_INWARD_REQUEST_TYPE = "DFS-CORE.INWARD_PAYMENT";
+
+    /** The same corridor's wallet reversal. Its reply is read into {@code dfsReversal.*} keys. */
+    public static final String DFS_REVERSAL_REQUEST_TYPE = "DFS-CORE-REVERSAL.REVERSAL";
 
     static final String HALT_CODE = "callback-rejected-transaction";
+
+    /** Where the wallet credit's own verdict lives — {@code SUCCESS} once DFS accepted it. */
+    public static final String CREDIT_STATUS_FIELD = "callback.status";
+    public static final String CREDIT_RESULT_CODE_FIELD = "callback.responseCode";
+
+    /**
+     * Where a wallet reversal's verdict lives. Separate keys, not {@code callback.*}: the credit's
+     * verdict is what {@code dfs-credit-status} reads to decide whether a reversal is owed, and a
+     * reversal reply overwriting it would erase the evidence.
+     */
+    public static final String REVERSAL_STATUS_FIELD = "dfsReversal.status";
+    public static final String REVERSAL_RESULT_CODE_FIELD = "dfsReversal.responseCode";
+    public static final String REVERSAL_RESULT_DESC_FIELD = "dfsReversal.responseDesc";
+
+    /**
+     * DFS answered the reversal with a non-zero ResultCode. Terminal for the reconciler — a refusal
+     * (wallet already spent, already reversed under this conversation id) does not change on retry,
+     * and retrying with a fresh id to get past a duplicate check is how a wallet gets debited twice.
+     */
+    public static final String REVERSAL_REJECTED_HALT_CODE = "dfs-reversal-rejected";
+
+    /** No readable reply to the reversal: it may or may not have landed. Retryable. */
+    public static final String REVERSAL_UNCONFIRMED_HALT_CODE = "dfs-reversal-unconfirmed";
 
     @Override
     public String name() {
@@ -73,6 +100,9 @@ public class DfsCallbackResponseStage implements PipelineStage {
         if (request.getDetails() == null) return request;
 
         String channel = request.getDetails().getRequestType();
+        if (DFS_REVERSAL_REQUEST_TYPE.equalsIgnoreCase(channel)) {
+            return interpretReversal(context, request);
+        }
         if (!DFS_INWARD_REQUEST_TYPE.equalsIgnoreCase(channel)) {
             LOG.info("[DFS-CB] for  {} {}", channel, request.getDetails().getRequestId());
             return request;
@@ -144,6 +174,58 @@ public class DfsCallbackResponseStage implements PipelineStage {
 
         } catch (Exception e) {
             LOG.warn("[DFS-CB] Could not parse callback response body to update details: {}", e.getMessage());
+        }
+        return request;
+    }
+
+    /**
+     * Reads DFS's answer to a wallet <b>reversal</b>.
+     *
+     * <p>Unlike the credit branch, silence here halts. The reconciler's {@code recovery-reverse-dfs-wallet}
+     * phase relies on it: a reversal that may not have landed must not be recorded as done, and the
+     * {@code db-update} after this stage is what persists {@link #REVERSAL_STATUS_FIELD} for the next
+     * gate to read. Only listed in the reconciler's phase today — the live {@code rndps-reversal-dfs}
+     * branch does not run this stage, so its behaviour is unchanged.
+     */
+    private PaymentLogSPI interpretReversal(PipelineContext context, PaymentLogSPI request) {
+        Details details = request.getDetails();
+        CallbackOutcome outcome = context.getAttribute(CallbackStage.RESPONSE_ATTR);
+        context.setAttribute(CallbackStage.RESPONSE_ATTR, null);
+
+        if (outcome == null || outcome.body() == null || outcome.body().isBlank()) {
+            LOG.warn("[DFS-CB] No reply to the wallet reversal for requestId={} — unconfirmed", details.getRequestId());
+            context.halt(name(), "CB-NR", REVERSAL_UNCONFIRMED_HALT_CODE, "No reply to the DFS wallet reversal");
+            return request;
+        }
+        String resultCode;
+        String resultDesc;
+        try {
+            Document doc = parseXml(outcome.body());
+            resultCode = firstText(doc, "ResultCode");
+            resultDesc = firstText(doc, "ResultDesc");
+        } catch (Exception e) {
+            LOG.warn("[DFS-CB] Unreadable reply to the wallet reversal for requestId={}: {}",
+                    details.getRequestId(), e.getMessage());
+            context.halt(name(), "CB-NR", REVERSAL_UNCONFIRMED_HALT_CODE, "Unreadable reply to the DFS wallet reversal");
+            return request;
+        }
+        if (resultCode == null || resultCode.isBlank()) {
+            context.halt(name(), "CB-NR", REVERSAL_UNCONFIRMED_HALT_CODE, "DFS reversal reply carries no ResultCode");
+            return request;
+        }
+
+        details.addAdditionalField(REVERSAL_RESULT_CODE_FIELD, resultCode);
+        if (resultDesc != null) details.addAdditionalField(REVERSAL_RESULT_DESC_FIELD, resultDesc);
+        if ("0".equals(resultCode.trim())) {
+            details.addAdditionalField(REVERSAL_STATUS_FIELD, "SUCCESS");
+            details.setStatus("REVERSED");
+            LOG.info("[DFS-CB] wallet reversal accepted for requestId={}", details.getRequestId());
+        } else {
+            details.addAdditionalField(REVERSAL_STATUS_FIELD, "FAILED");
+            context.halt(name(), "CB-" + resultCode, REVERSAL_REJECTED_HALT_CODE,
+                    "DFS refused the wallet reversal: " + resultCode + " " + resultDesc);
+            LOG.warn("[DFS-CB] wallet reversal refused for requestId={}: {} {}",
+                    details.getRequestId(), resultCode, resultDesc);
         }
         return request;
     }

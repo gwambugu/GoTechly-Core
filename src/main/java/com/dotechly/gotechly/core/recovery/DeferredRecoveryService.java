@@ -67,14 +67,18 @@ public class DeferredRecoveryService {
         row.setTriggerHaltCode(triggerHaltCode);
         row.setState(RecoveryModel.RecoveryState.PENDING);
         row.setAttempts(0);
-        // First attempt is immediate: core banking may already have recovered by the time the
-        // compensation finished, and the cheapest reconciliation is the one that happens at once.
-        row.setNextAttemptAt(now);
+        // First attempt is immediate unless the trigger carries a grace period: core banking may
+        // already have recovered by the time the compensation finished, and the cheapest
+        // reconciliation is the one that happens at once. A trigger where the scheme may still do the
+        // repair itself (rndps-callback-cancelled → its own pacs.007) waits that out first.
+        row.setNextAttemptAt(now.plus(properties.delayFor(triggerHaltCode)));
         row.setDeadlineAt(now.plus(properties.getGiveUpAfter()));
         try {
             DeferredRecovery saved = repository.saveAndFlush(row);
-            LOG.info("[RECOVERY] tracking requestId '{}' paymentType='{}' declared={} trigger='{}' deadline={}",
-                    requestId, paymentType, declaredOutcome, triggerHaltCode, saved.getDeadlineAt());
+            LOG.info("[RECOVERY] tracking requestId '{}' paymentType='{}' declared={} trigger='{}' "
+                            + "firstAttempt={} (grace {}) deadline={}",
+                    requestId, paymentType, declaredOutcome, triggerHaltCode, saved.getNextAttemptAt(),
+                    properties.delayFor(triggerHaltCode), saved.getDeadlineAt());
             return saved;
         } catch (DataIntegrityViolationException e) {
             // Another thread won the race on the unique constraint. Its row is as good as ours.
@@ -278,6 +282,109 @@ public class DeferredRecoveryService {
                     + "resumes", requestId, outcome, reason);
             return repository.save(row);
         });
+    }
+
+    /** What a scheme-initiated reversal should do about a transaction the reconciler may hold. */
+    public enum SchemeReversal {
+        /** No reconciler work stands in the way: the scheme's reversal runs as normal. */
+        PROCEED,
+        /**
+         * The reconciler has already started backing this credit out, or has finished. The scheme's
+         * reversal must be answered without moving money again.
+         */
+        HANDLED_BY_RECOVERY
+    }
+
+    /**
+     * Arbitrates between the reconciler and a reversal the scheme sent itself (an R-NDPS pacs.007).
+     *
+     * <p>Both back out the same credit, and they cannot both be allowed to. For a CBS posting core
+     * banking would refuse the second with {@code cbc-reversal-already-done}, but a DFS wallet credit
+     * has no such guard: the pacs.007 carries its own conversation id, so DFS would debit the wallet
+     * twice. This is the only thing that prevents that.
+     *
+     * <ul>
+     *   <li><b>Declared FAILED, reconciler has not started</b> ({@code attempts == 0}, not leased) —
+     *       the scheme's reversal arrived inside the grace period, which is the normal case. The row
+     *       is cancelled as superseded and the reversal proceeds.</li>
+     *   <li><b>Declared FAILED, reconciler has started or finished</b> — any attempt may already have
+     *       sent a reversal, and only the reconciler can see its outcome through. The scheme's
+     *       reversal is answered without moving money. Keyed on {@code attempts}, not on
+     *       {@code lastAction}: a later attempt's {@code RETRY} overwrites the {@code REVERSE} that
+     *       preceded it.</li>
+     *   <li><b>Declared SUCCESS or PENDING</b> — a CBS-timeout row the reconciler would resolve by
+     *       reposting. The scheme has now cancelled the transfer, so the target has flipped: the row
+     *       is cancelled and the reversal proceeds. If that row is mid-attempt the reversal still
+     *       proceeds — refusing a pacs.007 is not an option — and an ERROR asks a human to check.</li>
+     *   <li><b>CANCELLED, or no row</b> — nothing to arbitrate.</li>
+     * </ul>
+     *
+     * <p>Deliberately not {@code @Transactional}: the cancel is a conditional write on the row
+     * version, and losing that race to a worker's claim must be caught here and read as "the
+     * reconciler got there first", not surface as a rolled-back outer transaction.
+     */
+    public SchemeReversal handOverToScheme(String requestId) {
+        if (requestId == null || requestId.isBlank()) {
+            return SchemeReversal.PROCEED;
+        }
+        Optional<DeferredRecovery> found = repository.findByRequestId(requestId);
+        if (found.isEmpty()) {
+            return SchemeReversal.PROCEED;
+        }
+        DeferredRecovery row = found.orElseThrow();
+        RecoveryModel.RecoveryState state = row.getState();
+        if (state == RecoveryModel.RecoveryState.CANCELLED) {
+            return SchemeReversal.PROCEED;
+        }
+
+        if (row.getDeclaredOutcome() != RecoveryModel.DeclaredOutcome.FAILED) {
+            if (state == RecoveryModel.RecoveryState.RECONCILED) {
+                return SchemeReversal.PROCEED;
+            }
+            if (isLeased(row)) {
+                LOG.error("[RECOVERY] requestId '{}': scheme reversal arrived while the reconciler is working a "
+                                + "declared={} row (attempt {}). The reversal proceeds; check core banking for a "
+                                + "repost racing it.",
+                        requestId, row.getDeclaredOutcome(), row.getAttempts() + 1);
+                return SchemeReversal.PROCEED;
+            }
+            supersede(row, "Superseded by scheme reversal: the transfer was cancelled, declared "
+                    + row.getDeclaredOutcome() + " no longer holds");
+            return SchemeReversal.PROCEED;
+        }
+
+        if (row.getAttempts() > 0 || isLeased(row) || state == RecoveryModel.RecoveryState.RECONCILED) {
+            LOG.info("[RECOVERY] requestId '{}': scheme reversal arrived after the reconciler started "
+                            + "(state={}, attempts={}, lastAction={}) — answering it without reversing again",
+                    requestId, state, row.getAttempts(), row.getLastAction());
+            return SchemeReversal.HANDLED_BY_RECOVERY;
+        }
+        return supersede(row, "Superseded by scheme reversal inside the grace period")
+                ? SchemeReversal.PROCEED
+                : SchemeReversal.HANDLED_BY_RECOVERY;
+    }
+
+    private boolean isLeased(DeferredRecovery row) {
+        return row.getState() == RecoveryModel.RecoveryState.IN_PROGRESS
+                && row.getClaimedAt() != null
+                && row.getClaimedAt().isAfter(Instant.now().minus(properties.getLeaseDuration()));
+    }
+
+    /** @return {@code false} when a worker claimed the row between the read and this write */
+    private boolean supersede(DeferredRecovery row, String detail) {
+        row.setState(RecoveryModel.RecoveryState.CANCELLED);
+        row.setLastDetail(truncate(detail));
+        row.setOwnerInstance(null);
+        row.setClaimedAt(null);
+        try {
+            repository.saveAndFlush(row);
+            LOG.info("[RECOVERY] requestId '{}' cancelled — {}", row.getRequestId(), detail);
+            return true;
+        } catch (OptimisticLockingFailureException e) {
+            LOG.info("[RECOVERY] requestId '{}': the reconciler claimed the row as the scheme reversal "
+                    + "arrived — leaving it to the reconciler", row.getRequestId());
+            return false;
+        }
     }
 
     /** Operator calls it off — the inconsistency is being settled outside the system. */

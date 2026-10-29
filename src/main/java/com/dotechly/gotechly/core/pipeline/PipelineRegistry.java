@@ -109,6 +109,16 @@ public class PipelineRegistry {
     }
 
     /**
+     * Whether {@code (direction, paymentType, apiType)} has been configured explicitly — by plugin
+     * config or {@code application.yml} — or already resolved. Unlike {@link #getPipeline} it neither
+     * builds nor throws, and it is {@code true} for a phase configured with an empty stage list:
+     * {@code stages: []} is a statement ("never do this"), not an absence.
+     */
+    public boolean isConfigured(String direction, String paymentType, String apiType) {
+        return pipelineCache.containsKey(cacheKey(direction, paymentType, apiType));
+    }
+
+    /**
      * Get the compensation pipeline for a specific halt code within a phase.
      * Returns null if no compensation pipeline is configured for this combination.
      */

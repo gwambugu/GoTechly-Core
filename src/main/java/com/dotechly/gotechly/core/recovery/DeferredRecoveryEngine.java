@@ -5,7 +5,9 @@ import com.dotechly.gotechly.core.pipeline.PipelineContext;
 import com.dotechly.gotechly.core.pipeline.PipelineExecutor;
 import com.dotechly.gotechly.core.pipeline.PipelineRegistry;
 import com.dotechly.gotechly.core.pipeline.PipelineStage;
+import com.dotechly.gotechly.core.pipeline.stages.recovery.DeferredRecoveryStage;
 import com.dotechly.gotechly.spi.service.PaymentLogLookup;
+import com.dotechly.gotechly.spi.service.dto.payment.Details;
 import com.dotechly.gotechly.spi.service.dto.payment.PSP;
 import com.dotechly.gotechly.spi.service.dto.payment.PaymentLogSPI;
 import org.slf4j.Logger;
@@ -110,15 +112,16 @@ public class DeferredRecoveryEngine {
 
             switch (action) {
                 case RETRY -> service.reschedule(id, gate.state(), action,
-                        properties.getPhases().getGate(), gate.detail());
+                        phaseFor(row, log, properties.getPhases().getGate()), gate.detail());
                 case NOTHING_TO_DO -> {
                     // Already consistent. The confirm phase is bookkeeping only; a failure in it must
                     // not reopen a transaction that core banking and the scheme already agree on.
                     String detail = runConfirm(row, gate.log());
-                    service.reconciled(id, gate.state(), action, properties.getPhases().getConfirm(), detail);
+                    service.reconciled(id, gate.state(), action,
+                            phaseFor(row, gate.log(), properties.getPhases().getConfirm()), detail);
                 }
-                case REVERSE -> repair(row, gate, properties.getPhases().getReverse(), action);
-                case REPOST -> repair(row, gate, properties.getPhases().getRepost(), action);
+                case REVERSE -> repair(row, gate, phaseFor(row, gate.log(), properties.getPhases().getReverse()), action);
+                case REPOST -> repair(row, gate, phaseFor(row, gate.log(), properties.getPhases().getRepost()), action);
             }
         } catch (Exception e) {
             // A bug here must not strand the row. Reschedule and let the attempt budget bound it.
@@ -146,9 +149,11 @@ public class DeferredRecoveryEngine {
      * never delivered at all. A core-banking timeout and a failed callback tend to arrive in the same
      * outage, and a scheme that heard nothing behaves exactly as it does after a {@code NOT_ACK}.
      *
-     * <p><b>Only {@code REPOST} is cancelled.</b> Leaving {@code REVERSE} alone is deliberate: R-NDPS
-     * follows a {@code NOT_ACK} with its own pacs.007, which backs the entry out through
-     * {@code credit-reversal}. Reversing here as well would put two reversals on one posting.
+     * <p><b>Only {@code REPOST} is cancelled.</b> A cancelled callback is reconciled the other way:
+     * the callback handler halts {@code rndps-callback-cancelled} with {@code declaredOutcome=FAILED},
+     * and that row reverses the credit itself if R-NDPS's own pacs.007 has not arrived within the
+     * grace period ({@code gotechly.recovery.trigger-delays}). R-NDPS does not always send one. When it
+     * does, {@code recovery-handover} arbitrates so the credit is never backed out twice.
      *
      * <p>Absence of evidence is not evidence of refusal — a transaction with no PSP block, or none
      * with a status, is left to repost. On this corridor both errors cost money (an unpaid
@@ -189,7 +194,7 @@ public class DeferredRecoveryEngine {
      * would drive a reversal off no evidence at all.
      */
     private GateResult runGate(DeferredRecovery row, PaymentLogSPI log) {
-        String phase = properties.getPhases().getGate();
+        String phase = phaseFor(row, log, properties.getPhases().getGate());
         List<PipelineStage> stages = resolvePhase(row, phase);
         if (stages.isEmpty()) {
             LOG.warn("[RECOVERY] no stages configured for gate phase '{}' ({} / {}) — cannot establish "
@@ -296,7 +301,7 @@ public class DeferredRecoveryEngine {
      * banking about a settled posting.
      */
     private String runConfirm(DeferredRecovery row, PaymentLogSPI log) {
-        String phase = properties.getPhases().getConfirm();
+        String phase = phaseFor(row, log, properties.getPhases().getConfirm());
         List<PipelineStage> stages = resolvePhase(row, phase);
         if (stages.isEmpty()) {
             return "Already consistent";
@@ -340,6 +345,42 @@ public class DeferredRecoveryEngine {
                     phase, row.getDirection(), row.getPaymentType(), e.getMessage());
             return List.of();
         }
+    }
+
+    /**
+     * The recovery phase to run for this transaction: {@code {base}-{profile}} when the corridor
+     * stamped {@code Details.additionalFields.recoveryProfile} and configured that phase, else
+     * {@code base}.
+     *
+     * <p>Exists because one payment type can hold money in more than one place. An R-NDPS credit to
+     * an on-us account is a CBS posting, gated by {@code cbc-txn-status} and backed out by
+     * {@code cbc-txn-reversal}; one to a DFS wallet is a wallet credit that core banking cannot see,
+     * so asking core banking about it would answer "not posted" and reconcile a credit that is
+     * still there. The profile picks {@code recovery-gate-dfs-wallet} /
+     * {@code recovery-reverse-dfs-wallet} instead.
+     *
+     * <p><b>Falls back only when the profile phase is unconfigured, never when it is configured
+     * empty.</b> {@code recovery-repost-dfs-wallet: []} says "never repost this automatically";
+     * falling back to the base phase there would post money against that instruction.
+     *
+     * <p>Read from the log on every attempt rather than stored on the row, the same way the
+     * cross-border profile is: it is stamped by the stage that knew it, and persisted by the
+     * {@code db-update} that precedes {@code deferred-recovery}.
+     */
+    private String phaseFor(DeferredRecovery row, PaymentLogSPI log, String base) {
+        Details details = log == null ? null : log.getDetails();
+        String profile = details == null || details.getAdditionalFields() == null
+                ? null : details.getAdditionalFields().get(DeferredRecoveryStage.RECOVERY_PROFILE_FIELD);
+        if (profile == null || profile.isBlank()) {
+            return base;
+        }
+        String candidate = base + "-" + profile.trim();
+        if (registryProvider.getObject().isConfigured(row.getDirection(), row.getPaymentType(), candidate)) {
+            return candidate;
+        }
+        LOG.debug("[RECOVERY] requestId '{}': profile '{}' has no '{}' phase — using '{}'",
+                row.getRequestId(), profile, candidate, base);
+        return base;
     }
 
     /** What the gate established, plus the log it enriched on the way. */

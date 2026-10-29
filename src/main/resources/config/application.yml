@@ -285,6 +285,15 @@ gotechly:
       - cbs-payment-acc-missing
       - cbc-reversal-failed
       - cbc-reversal-payment-missing
+      # DFS refused a wallet reversal (spent balance, or a duplicate of one that already landed under
+      # the same conversation id). Retrying cannot change it; a human checks the wallet.
+      - dfs-reversal-rejected
+    # Grace before the first attempt, per trigger halt code. rndps-callback-cancelled = R-NDPS answered
+    # NOT_ACK / 502 and will normally send its own pacs.007 within 45s of the pacs.008; the reconciler
+    # reverses only if that has not happened by then. A pacs.007 inside the window cancels the row
+    # (recovery-handover). Unlisted triggers are attempted at once.
+    trigger-delays:
+      rndps-callback-cancelled: PT60S
     # The opposite of terminal: core banking already holds the end state the repair wanted, so the
     # row is RECONCILED rather than retried or escalated. Checked first — reading "already reversed"
     # as either a failure or a refusal calls a human to a row that is correct, which is how an alert

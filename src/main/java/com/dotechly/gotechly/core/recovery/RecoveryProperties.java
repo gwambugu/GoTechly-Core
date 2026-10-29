@@ -3,8 +3,10 @@ package com.dotechly.gotechly.core.recovery;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -127,6 +129,22 @@ public class RecoveryProperties {
      */
     private Set<String> alreadySatisfiedHaltCodes = new LinkedHashSet<>(List.of(
             "cbc-reversal-already-done"));
+
+    /**
+     * Grace period before the first attempt, keyed by the halt code that raised the row. A trigger
+     * not listed here is attempted at once, which is right for the CBS-timeout triggers: core banking
+     * may already have recovered by the time the compensation finished.
+     *
+     * <p>Exists for triggers where <b>somebody else may still do the repair</b>. R-NDPS follows a
+     * cancelled callback ({@code NOT_ACK} / 502) with its own pacs.007 within 45s of the pacs.008, so
+     * {@code rndps-callback-cancelled} waits past that SLA before the reconciler reverses the credit
+     * itself; a pacs.007 arriving inside the window supersedes the row
+     * ({@link DeferredRecoveryService#handOverToScheme}).
+     *
+     * <p>The delay is written onto the row as {@code next_attempt_at}, so it survives a restart. The
+     * sweeper runs every {@link #sweepInterval}, so the real wait is up to one interval longer.
+     */
+    private Map<String, Duration> triggerDelays = new LinkedHashMap<>();
 
     private final Backoff backoff = new Backoff();
     private final Phases phases = new Phases();
@@ -261,6 +279,29 @@ public class RecoveryProperties {
     /** Whether a repair phase's halt code means the end state it wanted already holds. */
     public boolean isAlreadySatisfiedHaltCode(String haltCode) {
         return matches(alreadySatisfiedHaltCodes, haltCode);
+    }
+
+    public Map<String, Duration> getTriggerDelays() { return triggerDelays; }
+
+    public void setTriggerDelays(Map<String, Duration> triggerDelays) {
+        this.triggerDelays = triggerDelays == null ? new LinkedHashMap<>() : new LinkedHashMap<>(triggerDelays);
+    }
+
+    /**
+     * Grace period for a row raised by {@code triggerHaltCode}; {@link Duration#ZERO} when none is
+     * configured. Matched trimmed and case-insensitively, like the halt-code lists.
+     */
+    public Duration delayFor(String triggerHaltCode) {
+        if (triggerHaltCode == null || triggerHaltCode.isBlank() || triggerDelays == null) {
+            return Duration.ZERO;
+        }
+        String candidate = triggerHaltCode.trim();
+        return triggerDelays.entrySet().stream()
+                .filter(e -> e.getKey() != null && e.getKey().trim().equalsIgnoreCase(candidate))
+                .map(Map.Entry::getValue)
+                .filter(d -> d != null && !d.isNegative())
+                .findFirst()
+                .orElse(Duration.ZERO);
     }
 
     public Phases getPhases() { return phases; }

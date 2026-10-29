@@ -48,6 +48,13 @@ public class DeferredRecoveryStage implements PipelineStage {
     /** Corridors that know what they told the scheme stamp it here. */
     public static final String DECLARED_OUTCOME_FIELD = "declaredOutcome";
 
+    /**
+     * Optional. Selects {@code {phase}-{profile}} recovery phases where the corridor configured them
+     * — e.g. {@code dfs-wallet} for a credit held in a DFS wallet rather than core banking. See
+     * {@code DeferredRecoveryEngine.phaseFor}.
+     */
+    public static final String RECOVERY_PROFILE_FIELD = "recoveryProfile";
+
     /** Statuses that mean "we reported this as settled". */
     private static final Set<String> SUCCESS_STATUSES = Set.of("COMPLETED", "SUCCESS", "POSTED", "ACSC", "ACCC");
     /** Statuses that mean "we reported this as refused". */
@@ -110,9 +117,9 @@ public class DeferredRecoveryStage implements PipelineStage {
             // on the freshly-computed value would condemn a row that already knows its answer.
             if (row.getDeclaredOutcome() == RecoveryModel.DeclaredOutcome.UNKNOWN) {
                 service.escalate(row.getId(),
-                        "Cannot establish what the scheme was told: no " + DECLARED_OUTCOME_FIELD
-                                + " stamp and status '" + details.getStatus() + "' is unclassified. "
-                                + "Both repairs move money, so this needs a human.");
+                        "Cannot establish what the scheme was told (trigger '" + triggerHaltCode
+                                + "', status '" + details.getStatus() + "'). Both repairs move money, "
+                                + "so this needs a human. A scheme reversal arriving later closes it.");
                 LOG.error("[RECOVERY] requestId '{}' recorded as UNKNOWN and escalated — the corridor "
                                 + "did not stamp {} and status '{}' says nothing about what R-NDPS was "
                                 + "told. No repair will run.",
